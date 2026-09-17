@@ -1,49 +1,62 @@
 ```javascript
+const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co/rest/v1/";
+const SUPABASE_KEY = "sb_publishable_HNTCe0KVE4Pemi9Z7DKAFw_NKgAS-Gp";
+
+const supabaseClient = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
 const videos = [];
 
-
 /* UPLOAD VIDEO */
-
-function uploadVideo(event) {
-
+async function uploadVideo(event) {
   const file = event.target.files[0];
 
-  if (!file) {
-    return;
-  }
+  if (!file) return;
 
   if (!file.type.startsWith("video/")) {
-
     alert("Please select a video file.");
-
     return;
   }
 
+  // Give the video a unique filename
+  const fileName = Date.now() + "-" + file.name;
 
-  /* Create temporary video URL */
+  // Upload the video to Supabase
+  const { data, error } = await supabaseClient.storage
+    .from("videos")
+    .upload(fileName, file);
 
-  const videoURL = URL.createObjectURL(file);
+  if (error) {
+    console.error(error);
+    alert("Upload failed: " + error.message);
+    return;
+  }
 
-
-  /* Create video information */
+  // Get the public video URL
+  const { data: publicURL } = supabaseClient.storage
+    .from("videos")
+    .getPublicUrl(fileName);
 
   const newVideo = {
-
     title: file.name.replace(/\.[^/.]+$/, ""),
-
     creator: "You",
-
-    video: videoURL,
-
+    video: publicURL.publicUrl,
     thumbnail: "",
-
     views: "0 views",
-
     date: "Just now",
-
     category: "Funny"
-
   };
+
+  videos.unshift(newVideo);
+  displayVideos(videos);
+  openVideo(newVideo);
+
+  event.target.value = "";
+
+  alert("🎉 Video uploaded to GryphonTube!");
+}
 
 
   /* Add video */
