@@ -1,6 +1,5 @@
-```javascript
-const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co";
-const SUPABASE_KEY = "sb_publishable_HNTCe0KVE4Pemi9Z7DKAFw_NKgAS-Gp";
+const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_KEY = "YOUR_ANON_OR_PUBLISHABLE_KEY";
 
 const supabaseClient = supabase.createClient(
   SUPABASE_URL,
@@ -9,9 +8,58 @@ const supabaseClient = supabase.createClient(
 
 const videos = [];
 
-/* UPLOAD VIDEO */
+/* ==========================================
+   LOAD SAVED VIDEOS FROM SUPABASE
+   ========================================== */
+
+async function loadVideos() {
+  const { data, error } = await supabaseClient.storage
+    .from("videos")
+    .list("", {
+      limit: 100,
+      sortBy: {
+        column: "created_at",
+        order: "desc"
+      }
+    });
+
+  if (error) {
+    console.error("LOAD ERROR:", error);
+    return;
+  }
+
+  videos.length = 0;
+
+  data.forEach(file => {
+    if (!file.name) return;
+
+    const { data: publicData } =
+      supabaseClient.storage
+        .from("videos")
+        .getPublicUrl(file.name);
+
+    videos.push({
+      title: file.name
+        .replace(/^\d+-/, "")
+        .replace(/\.[^/.]+$/, ""),
+      creator: "You",
+      video: publicData.publicUrl,
+      thumbnail: "",
+      views: "0 views",
+      date: "Uploaded",
+      category: "Funny"
+    });
+  });
+
+  displayVideos(videos);
+}
+
+
+/* ==========================================
+   UPLOAD VIDEO
+   ========================================== */
+
 async function uploadVideo(event) {
-alert("UPLOAD FUNCTION STARTED");
 
   const file = event.target.files[0];
 
@@ -22,25 +70,34 @@ alert("UPLOAD FUNCTION STARTED");
     return;
   }
 
-  // Give the video a unique filename
-  const fileName = Date.now() + "-" + file.name;
+  const fileName =
+    Date.now() + "-" + file.name;
 
-  // Upload the video to Supabase
-  const { data, error } = await supabaseClient.storage
-    .from("videos")
-    .upload(fileName, file);
-    console.log("UPLOAD RESULT:", data, error);
+  console.log("Uploading:", fileName);
 
+  const { data, error } =
+    await supabaseClient.storage
+      .from("videos")
+      .upload(fileName, file);
 
-  // Get the public video URL
-  const { data: publicURL } = supabaseClient.storage
-    .from("videos")
-    .getPublicUrl(fileName);
+  console.log("UPLOAD RESULT:", data, error);
+
+  if (error) {
+    console.error("UPLOAD ERROR:", error);
+    alert("Upload failed: " + error.message);
+    return;
+  }
+
+  const { data: publicData } =
+    supabaseClient.storage
+      .from("videos")
+      .getPublicUrl(fileName);
 
   const newVideo = {
-    title: file.name.replace(/\.[^/.]+$/, ""),
+    title: file.name
+      .replace(/\.[^/.]+$/, ""),
     creator: "You",
-    video: publicURL.publicUrl,
+    video: publicData.publicUrl,
     thumbnail: "",
     views: "0 views",
     date: "Just now",
@@ -48,7 +105,9 @@ alert("UPLOAD FUNCTION STARTED");
   };
 
   videos.unshift(newVideo);
+
   displayVideos(videos);
+
   openVideo(newVideo);
 
   event.target.value = "";
@@ -57,46 +116,22 @@ alert("UPLOAD FUNCTION STARTED");
 }
 
 
-  /* Add video */
-
-  videos.unshift(newVideo);
-
-
-  /* Update homepage */
-
-  displayVideos(videos);
-
-
-  /* Open video */
-
-  openVideo(newVideo);
-
-
-  /* Allow another upload */
-
-  event.target.value = "";
-
-}
-
-
-/* DISPLAY VIDEOS */
+/* ==========================================
+   DISPLAY VIDEOS
+   ========================================== */
 
 function displayVideos(list) {
 
-  const grid = document.getElementById("videoGrid");
+  const grid =
+    document.getElementById("videoGrid");
 
   grid.innerHTML = "";
 
-
   if (list.length === 0) {
-
     grid.innerHTML =
       "<h2>Upload a video to get started! ⬆️</h2>";
-
     return;
-
   }
-
 
   list.forEach(video => {
 
@@ -105,51 +140,38 @@ function displayVideos(list) {
 
     card.className = "video-card";
 
-
     card.innerHTML = `
-
       <div class="thumbnail">
-
-        <video src="${video.video}"></video>
-
+        <video src="${video.video}" preload="metadata"></video>
       </div>
 
       <div class="video-info">
 
         <div class="channel-icon">
-          Y
+          ${video.creator.charAt(0).toUpperCase()}
         </div>
 
         <div>
-
           <h2>${video.title}</h2>
-
           <p>${video.creator}</p>
-
           <p>${video.views} • ${video.date}</p>
-
         </div>
 
       </div>
-
     `;
 
-
     card.onclick = function() {
-
       openVideo(video);
-
     };
 
-
     grid.appendChild(card);
-
   });
-
 }
 
 
-/* OPEN VIDEO */
+/* ==========================================
+   OPEN VIDEO
+   ========================================== */
 
 function openVideo(video) {
 
@@ -159,32 +181,27 @@ function openVideo(video) {
   const mainVideo =
     document.getElementById("mainVideo");
 
-
   mainVideo.src = video.video;
-
 
   document.getElementById("playerTitle")
     .textContent = video.title;
 
-
   document.getElementById("playerCreator")
     .textContent = video.creator;
-
 
   document.getElementById("playerInfo")
     .textContent =
       video.views + " • " + video.date;
 
-
   player.classList.remove("hidden");
 
-
-  mainVideo.play();
-
+  mainVideo.play().catch(() => {});
 }
 
 
-/* CLOSE VIDEO */
+/* ==========================================
+   CLOSE VIDEO
+   ========================================== */
 
 function closePlayer() {
 
@@ -192,16 +209,17 @@ function closePlayer() {
     document.getElementById("mainVideo");
 
   mainVideo.pause();
-
-  mainVideo.src = "";
+  mainVideo.removeAttribute("src");
+  mainVideo.load();
 
   document.getElementById("player")
     .classList.add("hidden");
-
 }
 
 
-/* SEARCH */
+/* ==========================================
+   SEARCH
+   ========================================== */
 
 function searchVideos() {
 
@@ -210,29 +228,19 @@ function searchVideos() {
       .value
       .toLowerCase();
 
-
   const results =
     videos.filter(video =>
-
-      video.title
-        .toLowerCase()
-        .includes(search)
-
-      ||
-
-      video.creator
-        .toLowerCase()
-        .includes(search)
-
+      video.title.toLowerCase().includes(search) ||
+      video.creator.toLowerCase().includes(search)
     );
 
-
   displayVideos(results);
-
 }
 
 
-/* CATEGORY */
+/* ==========================================
+   CATEGORY
+   ========================================== */
 
 function filterCategory(category) {
 
@@ -241,33 +249,30 @@ function filterCategory(category) {
       video.category === category
     );
 
-
   displayVideos(results);
-
 }
 
 
-/* HOME */
+/* ==========================================
+   HOME
+   ========================================== */
 
 function showAll() {
-
   displayVideos(videos);
-
 }
 
 
-/* DARK MODE */
+/* ==========================================
+   DARK MODE
+   ========================================== */
 
 function omega() {
-
-  document.body
-    .classList
-    .toggle("dark-mode");
-
+  document.body.classList.toggle("dark-mode");
 }
 
 
-/* START */
+/* ==========================================
+   START
+   ========================================== */
 
-displayVideos(videos);
-```
+loadVideos();
