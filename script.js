@@ -2,12 +2,8 @@
    GRYPHONTUBE
    ========================================================= */
 
-const SUPABASE_URL =
-  "https://jxlhsjikurhlqdqufvtg.supabase.co";
-
-const SUPABASE_KEY =
-  "PASTE_YOUR_KEY_HERE";
-
+const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co"; 
+const SUPABASE_KEY = "sb_publishable_HNTCe0KVE4Pemi9Z7DKAFw_NKgAS-Gp";
 
 const supabaseClient = window.supabase.createClient(
   SUPABASE_URL,
