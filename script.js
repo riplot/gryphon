@@ -11,6 +11,8 @@ const videos = [];
 
 /* UPLOAD VIDEO */
 async function uploadVideo(event) {
+alert("UPLOAD FUNCTION STARTED");
+
   const file = event.target.files[0];
 
   if (!file) return;
