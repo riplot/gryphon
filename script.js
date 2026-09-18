@@ -27,12 +27,8 @@ async function uploadVideo(event) {
   const { data, error } = await supabaseClient.storage
     .from("videos")
     .upload(fileName, file);
+    console.log("UPLOAD RESULT:", data, error);
 
-  if (error) {
-    console.error(error);
-    alert("Upload failed: " + error.message);
-    return;
-  }
 
   // Get the public video URL
   const { data: publicURL } = supabaseClient.storage
