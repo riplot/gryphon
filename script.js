@@ -1,5 +1,5 @@
 ```javascript
-const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co";
 const SUPABASE_KEY = "sb_publishable_HNTCe0KVE4Pemi9Z7DKAFw_NKgAS-Gp";
 
 const supabaseClient = supabase.createClient(
