@@ -37,7 +37,13 @@
 
 <!-- HIDDEN FILE UPLOAD -->
 
-<input type="file" accept="video/*" onchange="uploadVideo(event)">
+<input
+  type="file"
+  id="videoUpload"
+  accept="video/mp4,video/webm,video/ogg"
+  style="display:none"
+  onchange="uploadVideo(event)"
+>
 
 
 <aside class="sidebar">
