@@ -1,36 +1,53 @@
-/* =========================================================
-   GRYPHONTUBE
-   ========================================================= */
-
 const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co"; 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bGhzamlrdXJobHFkcXVmdnRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NDg3MTIsImV4cCI6MjEwNTIyNDcxMn0.1vgRpmh33I3Ke_CxN-RwyhTRh-s8VRrrjora0ifhWW4";
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
+const supabaseClient =
+  window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
 
 /* =========================================================
-   LOCAL USER
+   LOCAL USER / CHANNEL
    ========================================================= */
 
 let visitorId =
-  localStorage.getItem("gryphontube_visitor_id");
+  localStorage.getItem(
+    "gryphontube_visitor_id"
+  );
 
 if (!visitorId) {
-  visitorId = crypto.randomUUID();
+
+  visitorId =
+    crypto.randomUUID();
 
   localStorage.setItem(
     "gryphontube_visitor_id",
     visitorId
   );
+
 }
 
 
 let creatorName =
-  localStorage.getItem("gryphontube_creator_name") ||
-  "You";
+  localStorage.getItem(
+    "gryphontube_creator_name"
+  ) || "You";
+
+
+let creatorBio =
+  localStorage.getItem(
+    "gryphontube_creator_bio"
+  ) ||
+  "Welcome to my GryphonTube channel!";
+
+
+let creatorColor =
+  localStorage.getItem(
+    "gryphontube_creator_color"
+  ) ||
+  "#673ab7";
 
 
 /* =========================================================
@@ -49,26 +66,6 @@ let currentFilter = "All";
 
 
 /* =========================================================
-   STARTER VIDEO
-   ========================================================= */
-
-const starterVideos = [
-  {
-    id: null,
-    storage_path: "video1.mp4",
-    title: "Welcome to GryphonTube!",
-    creator_name: "GryphonTube",
-    video: "video1.mp4",
-    thumbnail: "gusty.jpeg",
-    views: 0,
-    category: "Funny",
-    created_at: "2026-01-01T00:00:00Z",
-    local: true
-  }
-];
-
-
-/* =========================================================
    START
    ========================================================= */
 
@@ -77,6 +74,8 @@ document.addEventListener(
   function () {
 
     updateProfileButton();
+
+    updateProfileEditorIcon();
 
     loadVideos();
 
@@ -92,76 +91,131 @@ async function loadVideos() {
 
   let storageVideos = [];
 
+
   try {
 
-    const { data, error } =
+    const {
+      data,
+      error
+    } =
       await supabaseClient.storage
         .from("videos")
         .list();
 
+
     if (error) {
-      console.error("STORAGE LOAD ERROR:", error);
+
+      console.error(
+        "STORAGE LOAD ERROR:",
+        error
+      );
+
     } else {
 
-      storageVideos = (data || [])
-        .filter(file => {
-          const name = file.name.toLowerCase();
+      storageVideos =
+        (data || [])
+          .filter(
+            file => {
 
-          return (
-            name.endsWith(".mp4") ||
-            name.endsWith(".webm") ||
-            name.endsWith(".ogg")
+              const name =
+                file.name.toLowerCase();
+
+              return (
+                name.endsWith(".mp4") ||
+                name.endsWith(".webm") ||
+                name.endsWith(".ogg")
+              );
+
+            }
+          )
+          .map(
+            file => {
+
+              const {
+                data: urlData
+              } =
+                supabaseClient.storage
+                  .from("videos")
+                  .getPublicUrl(
+                    file.name
+                  );
+
+
+              return {
+
+                id:
+                  null,
+
+                storage_path:
+                  file.name,
+
+                title:
+                  file.name.replace(
+                    /\.[^/.]+$/,
+                    ""
+                  ),
+
+                creator_name:
+                  "You",
+
+                video:
+                  urlData.publicUrl,
+
+                thumbnail:
+                  "gusty.jpeg",
+
+                views:
+                  0,
+
+                category:
+                  "Funny",
+
+                created_at:
+                  file.created_at ||
+                  file.updated_at ||
+                  new Date().toISOString()
+
+              };
+
+            }
           );
-        })
-        .map(file => {
-
-          const { data: urlData } =
-            supabaseClient.storage
-              .from("videos")
-              .getPublicUrl(file.name);
-
-          return {
-            id: null,
-            storage_path: file.name,
-            title: file.name.replace(/\.[^/.]+$/, ""),
-            creator_name: "You",
-            video: urlData.publicUrl,
-            thumbnail: "gusty.jpeg",
-            views: 0,
-            category: "Funny",
-            created_at:
-              file.created_at ||
-              file.updated_at ||
-              new Date().toISOString(),
-            local: false
-          };
-
-        });
 
     }
 
+
   } catch (error) {
 
-    console.error("STORAGE ERROR:", error);
+    console.error(
+      "STORAGE ERROR:",
+      error
+    );
 
   }
 
 
-  /* ---------------------------------------------
+  /* =======================================================
      LOAD DATABASE METADATA
-     --------------------------------------------- */
+     ======================================================= */
 
   let dbVideos = [];
 
+
   try {
 
-    const { data, error } =
+    const {
+      data,
+      error
+    } =
       await supabaseClient
         .from("videos")
         .select("*")
-        .order("created_at", {
-          ascending: false
-        });
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
+
 
     if (error) {
 
@@ -172,9 +226,11 @@ async function loadVideos() {
 
     } else {
 
-      dbVideos = data || [];
+      dbVideos =
+        data || [];
 
     }
+
 
   } catch (error) {
 
@@ -186,16 +242,20 @@ async function loadVideos() {
   }
 
 
-  /* ---------------------------------------------
+  /* =======================================================
      MERGE STORAGE + DATABASE
-     --------------------------------------------- */
+     ======================================================= */
 
   const merged = [];
 
-  const usedPaths = new Set();
+  const usedPaths =
+    new Set();
 
 
-  for (const storageVideo of storageVideos) {
+  for (
+    const storageVideo
+    of storageVideos
+  ) {
 
     const metadata =
       dbVideos.find(
@@ -208,11 +268,14 @@ async function loadVideos() {
     if (metadata) {
 
       merged.push({
+
         ...storageVideo,
 
-        id: metadata.id,
+        id:
+          metadata.id,
 
-        title: metadata.title ||
+        title:
+          metadata.title ||
           storageVideo.title,
 
         creator_name:
@@ -224,7 +287,9 @@ async function loadVideos() {
           "Funny",
 
         views:
-          Number(metadata.views) || 0,
+          Number(
+            metadata.views
+          ) || 0,
 
         created_at:
           metadata.created_at ||
@@ -234,7 +299,9 @@ async function loadVideos() {
 
     } else {
 
-      merged.push(storageVideo);
+      merged.push(
+        storageVideo
+      );
 
     }
 
@@ -246,22 +313,29 @@ async function loadVideos() {
   }
 
 
-  /* ---------------------------------------------
-     DATABASE ITEMS THAT ARE STILL THERE
-     --------------------------------------------- */
+  /* =======================================================
+     DATABASE ITEMS NOT FOUND IN STORAGE LIST
+     ======================================================= */
 
-  for (const dbVideo of dbVideos) {
+  for (
+    const dbVideo
+    of dbVideos
+  ) {
 
     if (
       usedPaths.has(
         dbVideo.storage_path
       )
     ) {
+
       continue;
+
     }
 
 
-    const { data: urlData } =
+    const {
+      data: urlData
+    } =
       supabaseClient.storage
         .from("videos")
         .getPublicUrl(
@@ -271,7 +345,8 @@ async function loadVideos() {
 
     merged.push({
 
-      id: dbVideo.id,
+      id:
+        dbVideo.id,
 
       storage_path:
         dbVideo.storage_path,
@@ -289,43 +364,36 @@ async function loadVideos() {
         "gusty.jpeg",
 
       views:
-        Number(dbVideo.views) || 0,
+        Number(
+          dbVideo.views
+        ) || 0,
 
       category:
-        dbVideo.category || "Funny",
+        dbVideo.category ||
+        "Funny",
 
       created_at:
-        dbVideo.created_at,
-
-      local: false
+        dbVideo.created_at
 
     });
 
   }
 
 
-/* ADD STARTER VIDEO ONLY IF IT REALLY EXISTS */
-
-const hasStarter =
-  merged.some(
-    video =>
-      video.storage_path === "video1.mp4"
-  );
-
-if (!hasStarter) {
-  merged.push(starterVideos[0]);
-}
-
-
-  /* ---------------------------------------------
+  /* =======================================================
      SAVE
-     --------------------------------------------- */
+     ======================================================= */
 
-  videos = merged.sort(
-    (a, b) =>
-      new Date(b.created_at) -
-      new Date(a.created_at)
-  );
+  videos =
+    merged.sort(
+      (a, b) =>
+        new Date(
+          b.created_at
+        ) -
+        new Date(
+          a.created_at
+        )
+    );
 
 
   displayHomepage();
@@ -359,197 +427,48 @@ function displayFeatured() {
       "featuredVideo"
     );
 
+
   if (!videos.length) {
 
     container.innerHTML =
-      `<div class="empty-state">
-        No videos yet.
-      </div>`;
+      `
+        <div class="empty-state">
+
+          <h2>
+            No videos yet
+          </h2>
+
+          <p>
+            Upload your first video!
+          </p>
+
+        </div>
+      `;
 
     return;
 
   }
 
 
-  const video = videos[0];
+  const video =
+    videos[0];
 
 
-  container.innerHTML = `
-
-    <article
-      class="featured-card"
-      onclick="openVideoByPath('${escapeAttribute(video.storage_path)}')"
-    >
-
-      <video
-        class="featured-video"
-        src="${escapeAttribute(video.video)}"
-        muted
-        preload="metadata"
-      ></video>
-
-      <div class="featured-info">
-
-        <h2>
-          ${escapeHtml(video.title)}
-        </h2>
-
-        <p>
-          ${escapeHtml(video.creator_name)}
-        </p>
-
-        <p>
-          ${formatViews(video.views)}
-          •
-          ${formatDate(video.created_at)}
-        </p>
-
-        <p>
-          Welcome to GryphonTube!
-          Watch videos, upload your own,
-          and build your channel.
-        </p>
-
-      </div>
-
-    </article>
-
-  `;
-
-}
-
-
-/* =========================================================
-   RECENT
-   ========================================================= */
-
-function displayRecent() {
-
-  const grid =
-    document.getElementById(
-      "recentGrid"
-    );
-
-
-  const recent =
-    videos.slice(0, 6);
-
-
-  renderVideoGrid(
-    recent,
-    grid
-  );
-
-}
-
-
-/* =========================================================
-   APPLY FILTER
-   ========================================================= */
-
-function applyCurrentFilter() {
-
-  let results = videos;
-
-
-  if (currentFilter !== "All") {
-
-    results =
-      videos.filter(
-        video =>
-          video.category ===
-          currentFilter
-      );
-
-  }
-
-
-  const title =
-    document.getElementById(
-      "videoSectionTitle"
-    );
-
-
-  title.textContent =
-    currentFilter === "All"
-      ? "All videos"
-      : currentFilter;
-
-
-  renderVideoGrid(
-    results,
-    document.getElementById(
-      "videoGrid"
-    )
-  );
-
-}
-
-
-/* =========================================================
-   RENDER GRID
-   ========================================================= */
-
-function renderVideoGrid(
-  list,
-  grid
-) {
-
-  grid.innerHTML = "";
-
-
-  if (!list.length) {
-
-    grid.innerHTML =
-      `<div class="empty-state">
-        <h2>No videos found</h2>
-        <p>Try another category or upload a video.</p>
-      </div>`;
-
-    return;
-
-  }
-
-
-  list.forEach(video => {
-
-    const card =
-      document.createElement(
-        "article"
-      );
-
-    card.className =
-      "video-card";
-
-
-    card.innerHTML = `
-
-      <div class="thumbnail">
+  container.innerHTML =
+    `
+      <article
+        class="featured-card"
+        onclick="openVideoByPath('${escapeAttribute(video.storage_path)}')"
+      >
 
         <video
+          class="featured-video"
           src="${escapeAttribute(video.video)}"
           muted
           preload="metadata"
         ></video>
 
-        <span
-          class="duration"
-        >
-          --
-        </span>
-
-      </div>
-
-
-      <div class="video-info">
-
-        <div class="channel-icon">
-          ${escapeHtml(
-            getInitial(video.creator_name)
-          )}
-        </div>
-
-        <div class="video-text">
+        <div class="featured-info">
 
           <h2>
             ${escapeHtml(video.title)}
@@ -565,51 +484,227 @@ function renderVideoGrid(
             ${formatDate(video.created_at)}
           </p>
 
+          <p>
+            ${escapeHtml(
+              getChannelBio(
+                video.creator_name
+              )
+            )}
+          </p>
+
         </div>
 
-      </div>
-
+      </article>
     `;
 
+}
 
-    const videoElement =
-      card.querySelector(
-        ".thumbnail video"
+
+/* =========================================================
+   RECENT
+   ========================================================= */
+
+function displayRecent() {
+
+  renderVideoGrid(
+    videos.slice(0, 6),
+
+    document.getElementById(
+      "recentGrid"
+    )
+  );
+
+}
+
+
+/* =========================================================
+   FILTER
+   ========================================================= */
+
+function applyCurrentFilter() {
+
+  let results =
+    videos;
+
+
+  if (
+    currentFilter !==
+    "All"
+  ) {
+
+    results =
+      videos.filter(
+        video =>
+          video.category ===
+          currentFilter
+      );
+
+  }
+
+
+  document.getElementById(
+    "videoSectionTitle"
+  ).textContent =
+    currentFilter === "All"
+      ? "All videos"
+      : currentFilter;
+
+
+  renderVideoGrid(
+    results,
+
+    document.getElementById(
+      "videoGrid"
+    )
+  );
+
+}
+
+
+/* =========================================================
+   VIDEO GRID
+   ========================================================= */
+
+function renderVideoGrid(
+  list,
+  grid
+) {
+
+  grid.innerHTML =
+    "";
+
+
+  if (!list.length) {
+
+    grid.innerHTML =
+      `
+        <div class="empty-state">
+
+          <h2>
+            No videos found
+          </h2>
+
+          <p>
+            Upload a video or try another category.
+          </p>
+
+        </div>
+      `;
+
+    return;
+
+  }
+
+
+  list.forEach(
+    video => {
+
+      const card =
+        document.createElement(
+          "article"
+        );
+
+
+      card.className =
+        "video-card";
+
+
+      card.innerHTML =
+        `
+          <div class="thumbnail">
+
+            <video
+              src="${escapeAttribute(video.video)}"
+              muted
+              preload="metadata"
+            ></video>
+
+            <span class="duration">
+              --
+            </span>
+
+          </div>
+
+
+          <div class="video-info">
+
+            <div
+              class="channel-icon"
+              style="background:${getCreatorColor(video.creator_name)}"
+            >
+              ${escapeHtml(
+                getInitial(
+                  video.creator_name
+                )
+              )}
+            </div>
+
+
+            <div class="video-text">
+
+              <h2>
+                ${escapeHtml(video.title)}
+              </h2>
+
+              <p>
+                ${escapeHtml(video.creator_name)}
+              </p>
+
+              <p>
+                ${formatViews(video.views)}
+                •
+                ${formatDate(video.created_at)}
+              </p>
+
+            </div>
+
+          </div>
+        `;
+
+
+      const preview =
+        card.querySelector(
+          ".thumbnail video"
+        );
+
+
+      const duration =
+        card.querySelector(
+          ".duration"
+        );
+
+
+      preview.addEventListener(
+        "loadedmetadata",
+        function () {
+
+          duration.textContent =
+            formatDuration(
+              preview.duration
+            );
+
+        }
       );
 
 
-    const durationElement =
-      card.querySelector(
-        ".duration"
-      );
+      card.addEventListener(
+        "click",
+        function () {
 
-
-    videoElement.addEventListener(
-      "loadedmetadata",
-      function () {
-
-        durationElement.textContent =
-          formatDuration(
-            videoElement.duration
+          openVideo(
+            video
           );
 
-      }
-    );
+        }
+      );
 
 
-    card.addEventListener(
-      "click",
-      function () {
+      grid.appendChild(
+        card
+      );
 
-        openVideo(video);
-
-      }
-    );
-
-
-    grid.appendChild(card);
-
-  });
+    }
+  );
 
 }
 
@@ -618,7 +713,9 @@ function renderVideoGrid(
    UPLOAD
    ========================================================= */
 
-async function uploadVideo(event) {
+async function uploadVideo(
+  event
+) {
 
   const file =
     event.target.files[0];
@@ -629,13 +726,18 @@ async function uploadVideo(event) {
   }
 
 
-  if (!file.type.startsWith("video/")) {
+  if (
+    !file.type.startsWith(
+      "video/"
+    )
+  ) {
 
     alert(
       "Please select a video file."
     );
 
-    event.target.value = "";
+    event.target.value =
+      "";
 
     return;
 
@@ -648,16 +750,11 @@ async function uploadVideo(event) {
   );
 
 
-  const extension =
-    file.name.split(".").pop();
-
-
   const safeName =
-    file.name
-      .replace(
-        /[^a-zA-Z0-9._-]/g,
-        "_"
-      );
+    file.name.replace(
+      /[^a-zA-Z0-9._-]/g,
+      "_"
+    );
 
 
   const fileName =
@@ -672,7 +769,9 @@ async function uploadVideo(event) {
 
   try {
 
-    const { error } =
+    const {
+      error
+    } =
       await supabaseClient.storage
         .from("videos")
         .upload(
@@ -693,7 +792,8 @@ async function uploadVideo(event) {
         error.message
       );
 
-      event.target.value = "";
+      event.target.value =
+        "";
 
       return;
 
@@ -705,7 +805,9 @@ async function uploadVideo(event) {
     );
 
 
-    const { data: urlData } =
+    const {
+      data: urlData
+    } =
       supabaseClient.storage
         .from("videos")
         .getPublicUrl(
@@ -713,16 +815,20 @@ async function uploadVideo(event) {
         );
 
 
-    /* ---------------------------------------------
+    /* =====================================================
        DATABASE METADATA
-       --------------------------------------------- */
+       ===================================================== */
 
-    let databaseVideo = null;
+    let databaseVideo =
+      null;
 
 
     try {
 
-      const { data, error } =
+      const {
+        data,
+        error
+      } =
         await supabaseClient
           .from("videos")
           .insert({
@@ -759,9 +865,11 @@ async function uploadVideo(event) {
 
       } else {
 
-        databaseVideo = data;
+        databaseVideo =
+          data;
 
       }
+
 
     } catch (error) {
 
@@ -804,10 +912,7 @@ async function uploadVideo(event) {
         "Funny",
 
       created_at:
-        new Date().toISOString(),
-
-      local:
-        false
+        new Date().toISOString()
 
     };
 
@@ -818,6 +923,7 @@ async function uploadVideo(event) {
 
 
     displayHomepage();
+
 
     alert(
       "Video uploaded!"
@@ -844,7 +950,8 @@ async function uploadVideo(event) {
   }
 
 
-  event.target.value = "";
+  event.target.value =
+    "";
 
 }
 
@@ -893,12 +1000,22 @@ async function openVideo(
     video.creator_name;
 
 
+  creatorButton.style.color =
+    getCreatorColor(
+      video.creator_name
+    );
+
+
   document.getElementById(
     "playerInfo"
   ).textContent =
-    formatViews(video.views) +
+    formatViews(
+      video.views
+    ) +
     " • " +
-    formatDate(video.created_at);
+    formatDate(
+      video.created_at
+    );
 
 
   player.classList.remove(
@@ -908,21 +1025,21 @@ async function openVideo(
 
   await incrementViews();
 
-
   await updateLikeUI();
-
 
   await loadComments();
 
 
   mainVideo.play()
-    .catch(() => {});
+    .catch(
+      () => {}
+    );
 
 }
 
 
 /* =========================================================
-   OPEN BY PATH
+   OPEN VIDEO BY PATH
    ========================================================= */
 
 function openVideoByPath(
@@ -931,8 +1048,8 @@ function openVideoByPath(
 
   const video =
     videos.find(
-      v =>
-        v.storage_path ===
+      item =>
+        item.storage_path ===
         path
     );
 
@@ -994,20 +1111,25 @@ async function incrementViews() {
 
 
   currentVideo.views =
-    Number(currentVideo.views || 0) +
-    1;
+    Number(
+      currentVideo.views || 0
+    ) + 1;
 
 
   if (
     currentVideo.id
   ) {
 
-    const { error } =
+    const {
+      error
+    } =
       await supabaseClient
         .from("videos")
         .update({
+
           views:
             currentVideo.views
+
         })
         .eq(
           "id",
@@ -1042,7 +1164,7 @@ async function incrementViews() {
 
 
 /* =========================================================
-   LIKE
+   LIKES
    ========================================================= */
 
 async function toggleLike() {
@@ -1052,13 +1174,9 @@ async function toggleLike() {
   }
 
 
-  const button =
-    document.getElementById(
-      "likeButton"
-    );
-
-
-  if (!currentVideo.id) {
+  if (
+    !currentVideo.id
+  ) {
 
     toggleLocalLike();
 
@@ -1067,9 +1185,13 @@ async function toggleLike() {
   }
 
 
-  if (currentVideoLiked) {
+  if (
+    currentVideoLiked
+  ) {
 
-    const { error } =
+    const {
+      error
+    } =
       await supabaseClient
         .from("video_likes")
         .delete()
@@ -1098,9 +1220,12 @@ async function toggleLike() {
     currentVideoLiked =
       false;
 
+
   } else {
 
-    const { error } =
+    const {
+      error
+    } =
       await supabaseClient
         .from("video_likes")
         .insert({
@@ -1154,7 +1279,9 @@ async function updateLikeUI() {
   }
 
 
-  if (!currentVideo.id) {
+  if (
+    !currentVideo.id
+  ) {
 
     const key =
       getLocalLikeKey(
@@ -1183,12 +1310,16 @@ async function updateLikeUI() {
         ? "❤️ Liked"
         : "❤️ Like";
 
+
     return;
 
   }
 
 
-  const { data, error } =
+  const {
+    data,
+    error
+  } =
     await supabaseClient
       .from("video_likes")
       .select(
@@ -1301,12 +1432,12 @@ async function loadComments() {
     );
 
 
-  list.innerHTML =
-    "<p>Loading comments...</p>";
+  if (!currentVideo) {
+    return;
+  }
 
 
   if (
-    !currentVideo ||
     !currentVideo.id
   ) {
 
@@ -1324,7 +1455,9 @@ async function loadComments() {
 
     currentComments =
       stored
-        ? JSON.parse(stored)
+        ? JSON.parse(
+            stored
+          )
         : [];
 
 
@@ -1335,7 +1468,10 @@ async function loadComments() {
   }
 
 
-  const { data, error } =
+  const {
+    data,
+    error
+  } =
     await supabaseClient
       .from("video_comments")
       .select("*")
@@ -1391,7 +1527,8 @@ function renderComments() {
     );
 
 
-  list.innerHTML = "";
+  list.innerHTML =
+    "";
 
 
   if (!currentComments.length) {
@@ -1417,36 +1554,31 @@ function renderComments() {
         "comment";
 
 
-      div.innerHTML = `
+      div.innerHTML =
+        `
+          <div>
 
-        <div>
+            <span class="comment-name">
+              ${escapeHtml(
+                comment.creator_name ||
+                "User"
+              )}
+            </span>
 
-          <span
-            class="comment-name"
-          >
+            <span class="comment-date">
+              ${formatDate(
+                comment.created_at
+              )}
+            </span>
+
+          </div>
+
+          <p>
             ${escapeHtml(
-              comment.creator_name ||
-              "User"
+              comment.body
             )}
-          </span>
-
-          <span
-            class="comment-date"
-          >
-            ${formatDate(
-              comment.created_at
-            )}
-          </span>
-
-        </div>
-
-        <p>
-          ${escapeHtml(
-            comment.body
-          )}
-        </p>
-
-      `;
+          </p>
+        `;
 
 
       list.appendChild(
@@ -1485,7 +1617,9 @@ async function addComment() {
   }
 
 
-  if (!currentVideo.id) {
+  if (
+    !currentVideo.id
+  ) {
 
     const key =
       getLocalCommentKey(
@@ -1523,7 +1657,8 @@ async function addComment() {
     );
 
 
-    input.value = "";
+    input.value =
+      "";
 
     await loadComments();
 
@@ -1532,7 +1667,9 @@ async function addComment() {
   }
 
 
-  const { error } =
+  const {
+    error
+  } =
     await supabaseClient
       .from("video_comments")
       .insert({
@@ -1569,7 +1706,8 @@ async function addComment() {
   }
 
 
-  input.value = "";
+  input.value =
+    "";
 
 
   await loadComments();
@@ -1606,6 +1744,15 @@ function openProfile() {
 
 
   document.getElementById(
+    "profileBioInput"
+  ).value =
+    creatorBio;
+
+
+  updateProfileEditorIcon();
+
+
+  document.getElementById(
     "profileModal"
   ).classList.remove(
     "hidden"
@@ -1627,17 +1774,19 @@ function closeProfile() {
 
 function saveProfile() {
 
-  const input =
+  const name =
     document.getElementById(
       "profileNameInput"
-    );
+    ).value.trim();
 
 
-  const newName =
-    input.value.trim();
+  const bio =
+    document.getElementById(
+      "profileBioInput"
+    ).value.trim();
 
 
-  if (!newName) {
+  if (!name) {
 
     alert(
       "Enter a channel name."
@@ -1649,7 +1798,12 @@ function saveProfile() {
 
 
   creatorName =
-    newName;
+    name;
+
+
+  creatorBio =
+    bio ||
+    "Welcome to my GryphonTube channel!";
 
 
   localStorage.setItem(
@@ -1658,7 +1812,22 @@ function saveProfile() {
   );
 
 
+  localStorage.setItem(
+    "gryphontube_creator_bio",
+    creatorBio
+  );
+
+
+  localStorage.setItem(
+    "gryphontube_creator_color",
+    creatorColor
+  );
+
+
   updateProfileButton();
+
+  updateProfileEditorIcon();
+
 
   closeProfile();
 
@@ -1666,6 +1835,27 @@ function saveProfile() {
   alert(
     "Channel saved!"
   );
+
+}
+
+
+function chooseProfileColor(
+  color
+) {
+
+  creatorColor =
+    color;
+
+
+  localStorage.setItem(
+    "gryphontube_creator_color",
+    creatorColor
+  );
+
+
+  updateProfileButton();
+
+  updateProfileEditorIcon();
 
 }
 
@@ -1688,8 +1878,41 @@ function updateProfileButton() {
       creatorName
     );
 
+
+  button.style.background =
+    creatorColor;
+
 }
 
+
+function updateProfileEditorIcon() {
+
+  const icon =
+    document.getElementById(
+      "profileEditIcon"
+    );
+
+
+  if (!icon) {
+    return;
+  }
+
+
+  icon.textContent =
+    getInitial(
+      creatorName
+    );
+
+
+  icon.style.background =
+    creatorColor;
+
+}
+
+
+/* =========================================================
+   OPEN CHANNEL
+   ========================================================= */
 
 function openOwnChannel() {
 
@@ -1734,10 +1957,22 @@ function openChannel(
     name;
 
 
-  document.getElementById(
-    "channelIcon"
-  ).textContent =
-    getInitial(name);
+  const icon =
+    document.getElementById(
+      "channelIcon"
+    );
+
+
+  icon.textContent =
+    getInitial(
+      name
+    );
+
+
+  icon.style.background =
+    getCreatorColor(
+      name
+    );
 
 
   document.getElementById(
@@ -1751,8 +1986,17 @@ function openChannel(
     );
 
 
+  document.getElementById(
+    "channelBio"
+  ).textContent =
+    getChannelBio(
+      name
+    );
+
+
   renderVideoGrid(
     channelVideos,
+
     document.getElementById(
       "channelGrid"
     )
@@ -1808,9 +2052,11 @@ function showAll() {
 
 
   if (allButton) {
+
     allButton.classList.add(
       "active"
     );
+
   }
 
 
@@ -1832,7 +2078,11 @@ function showRecent() {
 
 
   renderVideoGrid(
-    videos.slice(0, 20),
+    videos.slice(
+      0,
+      20
+    ),
+
     document.getElementById(
       "videoGrid"
     )
@@ -1840,8 +2090,11 @@ function showRecent() {
 
 
   window.scrollTo({
+
     top: 0,
+
     behavior: "smooth"
+
   });
 
 }
@@ -1857,20 +2110,28 @@ async function showLiked() {
 
 
   for (
-    const video of videos
+    const video
+    of videos
   ) {
 
-    let liked = false;
+    let liked =
+      false;
 
 
-    if (video.id) {
+    if (
+      video.id
+    ) {
 
       try {
 
-        const { data } =
+        const {
+          data
+        } =
           await supabaseClient
             .from("video_likes")
-            .select("visitor_id")
+            .select(
+              "visitor_id"
+            )
             .eq(
               "video_id",
               video.id
@@ -1885,9 +2146,11 @@ async function showLiked() {
         liked =
           !!data;
 
+
       } catch (error) {
 
-        liked = false;
+        liked =
+          false;
 
       }
 
@@ -1895,7 +2158,9 @@ async function showLiked() {
 
       liked =
         localStorage.getItem(
-          getLocalLikeKey(video)
+          getLocalLikeKey(
+            video
+          )
         ) === "1";
 
     }
@@ -1920,6 +2185,7 @@ async function showLiked() {
 
   renderVideoGrid(
     likedVideos,
+
     document.getElementById(
       "videoGrid"
     )
@@ -1960,7 +2226,8 @@ function filterCategory(
       button => {
 
         if (
-          button.textContent.trim()
+          button.textContent
+            .trim()
             .toLowerCase() ===
           category.toLowerCase()
         ) {
@@ -2024,6 +2291,7 @@ function searchVideos() {
 
   renderVideoGrid(
     results,
+
     document.getElementById(
       "videoGrid"
     )
@@ -2031,8 +2299,11 @@ function searchVideos() {
 
 
   window.scrollTo({
+
     top: 0,
+
     behavior: "smooth"
+
   });
 
 }
@@ -2051,6 +2322,7 @@ function omega() {
 
   localStorage.setItem(
     "gryphontube_dark_mode",
+
     document.body.classList.contains(
       "dark-mode"
     )
@@ -2142,6 +2414,7 @@ async function copyVideoLink() {
       "Video link copied!"
     );
 
+
   } catch (error) {
 
     alert(
@@ -2149,6 +2422,48 @@ async function copyVideoLink() {
     );
 
   }
+
+}
+
+
+/* =========================================================
+   PROFILE HELPERS
+   ========================================================= */
+
+function getChannelBio(
+  name
+) {
+
+  if (
+    name ===
+    creatorName
+  ) {
+
+    return creatorBio;
+
+  }
+
+
+  return "";
+
+}
+
+
+function getCreatorColor(
+  name
+) {
+
+  if (
+    name ===
+    creatorName
+  ) {
+
+    return creatorColor;
+
+  }
+
+
+  return "#673ab7";
 
 }
 
@@ -2162,34 +2477,55 @@ function formatViews(
 ) {
 
   number =
-    Number(number || 0);
+    Number(
+      number || 0
+    );
 
 
-  if (number >= 1000000) {
+  if (
+    number >=
+    1000000
+  ) {
 
     return (
-      (number / 1000000)
+      (
+        number / 1000000
+      )
         .toFixed(1)
-        .replace(".0", "") +
+        .replace(
+          ".0",
+          ""
+        ) +
       "M views"
     );
 
   }
 
 
-  if (number >= 1000) {
+  if (
+    number >=
+    1000
+  ) {
 
     return (
-      (number / 1000)
+      (
+        number / 1000
+      )
         .toFixed(1)
-        .replace(".0", "") +
+        .replace(
+          ".0",
+          ""
+        ) +
       "K views"
     );
 
   }
 
 
-  return number + " views";
+  return (
+    number +
+    " views"
+  );
 
 }
 
@@ -2204,7 +2540,9 @@ function formatDate(
 
 
   const date =
-    new Date(value);
+    new Date(
+      value
+    );
 
 
   const seconds =
@@ -2216,8 +2554,12 @@ function formatDate(
     );
 
 
-  if (seconds < 60) {
+  if (
+    seconds < 60
+  ) {
+
     return "Just now";
+
   }
 
 
@@ -2227,7 +2569,9 @@ function formatDate(
     );
 
 
-  if (minutes < 60) {
+  if (
+    minutes < 60
+  ) {
 
     return (
       minutes +
@@ -2247,7 +2591,9 @@ function formatDate(
     );
 
 
-  if (hours < 24) {
+  if (
+    hours < 24
+  ) {
 
     return (
       hours +
@@ -2267,7 +2613,9 @@ function formatDate(
     );
 
 
-  if (days < 30) {
+  if (
+    days < 30
+  ) {
 
     return (
       days +
@@ -2291,7 +2639,9 @@ function formatDuration(
 ) {
 
   if (
-    !Number.isFinite(seconds)
+    !Number.isFinite(
+      seconds
+    )
   ) {
 
     return "--";
@@ -2300,7 +2650,9 @@ function formatDuration(
 
 
   seconds =
-    Math.floor(seconds);
+    Math.floor(
+      seconds
+    );
 
 
   const minutes =
@@ -2316,8 +2668,12 @@ function formatDuration(
   return (
     minutes +
     ":" +
-    String(secs)
-      .padStart(2, "0")
+    String(
+      secs
+    ).padStart(
+      2,
+      "0"
+    )
   );
 
 }
@@ -2343,12 +2699,29 @@ function escapeHtml(
   text
 ) {
 
-  return String(text)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+  return String(
+    text
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 
 }
 
@@ -2357,11 +2730,28 @@ function escapeAttribute(
   text
 ) {
 
-  return String(text)
-    .replaceAll("&", "&amp;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll("'", "&#039;");
+  return String(
+    text
+  )
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
 
 }
