@@ -14,14 +14,23 @@
   <!-- ==================== TOP BAR ==================== -->
   <header class="topbar">
 
-    <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+    <button
+      class="mobile-menu"
+      onclick="toggleSidebar()"
+    >
+      ☰
+    </button>
 
-    <div class="logo" onclick="showAll()">
+    <div
+      class="logo"
+      onclick="showAll()"
+    >
       <span class="logo-icon">▶</span>
       GryphonTube
     </div>
 
     <div class="search">
+
       <input
         id="searchInput"
         type="text"
@@ -29,7 +38,10 @@
         onkeydown="if(event.key==='Enter') searchVideos()"
       >
 
-      <button onclick="searchVideos()">🔍</button>
+      <button onclick="searchVideos()">
+        🔍
+      </button>
+
     </div>
 
     <div class="top-buttons">
@@ -41,11 +53,17 @@
         ⬆️
       </button>
 
-      <button onclick="omega()" title="Dark mode">
+      <button
+        onclick="omega()"
+        title="Dark mode"
+      >
         🌙
       </button>
 
-      <button onclick="showNotifications()" title="Notifications">
+      <button
+        onclick="showNotifications()"
+        title="Notifications"
+      >
         🔔
       </button>
 
@@ -76,24 +94,31 @@
 
   <!-- ==================== SIDEBAR ==================== -->
 
-  <aside class="sidebar" id="sidebar">
+  <aside
+    class="sidebar"
+    id="sidebar"
+  >
 
-    <button class="side-button active" onclick="showAll()">
+    <button
+      class="side-button active"
+      onclick="showAll()"
+    >
       🏠
       <span>Home</span>
     </button>
 
-    <button class="side-button" onclick="showRecent()">
+    <button
+      class="side-button"
+      onclick="showRecent()"
+    >
       🕒
       <span>Recent</span>
     </button>
 
-    <button class="side-button" onclick="showLiked()">
-      ❤️
-      <span>Liked</span>
-    </button>
-
-    <button class="side-button" onclick="openProfile()">
+    <button
+      class="side-button"
+      onclick="openOwnChannel()"
+    >
       👤
       <span>Your Channel</span>
     </button>
@@ -102,22 +127,34 @@
 
     <h3>Categories</h3>
 
-    <button class="side-button" onclick="filterCategory('Gaming')">
+    <button
+      class="side-button"
+      onclick="filterCategory('Gaming')"
+    >
       🎮
       <span>Gaming</span>
     </button>
 
-    <button class="side-button" onclick="filterCategory('Music')">
+    <button
+      class="side-button"
+      onclick="filterCategory('Music')"
+    >
       🎵
       <span>Music</span>
     </button>
 
-    <button class="side-button" onclick="filterCategory('Animation')">
+    <button
+      class="side-button"
+      onclick="filterCategory('Animation')"
+    >
       🎨
       <span>Animation</span>
     </button>
 
-    <button class="side-button" onclick="filterCategory('Funny')">
+    <button
+      class="side-button"
+      onclick="filterCategory('Funny')"
+    >
       😂
       <span>Funny</span>
     </button>
@@ -129,10 +166,12 @@
 
   <main class="content">
 
-    <!-- CATEGORY BAR -->
     <div class="category-bar">
 
-      <button class="active" onclick="showAll()">
+      <button
+        class="active"
+        onclick="showAll()"
+      >
         All
       </button>
 
@@ -157,10 +196,17 @@
 
     <!-- ==================== FEATURED ==================== -->
 
-    <section id="featuredSection" class="featured-section">
+    <section
+      id="featuredSection"
+      class="featured-section"
+    >
 
       <div class="section-header">
-        <h1>Featured</h1>
+
+        <h1>
+          Featured
+        </h1>
+
       </div>
 
       <div id="featuredVideo"></div>
@@ -173,7 +219,10 @@
     <section>
 
       <div class="section-header">
-        <h1>Recently uploaded</h1>
+
+        <h1>
+          Recently uploaded
+        </h1>
 
         <button
           class="text-button"
@@ -181,6 +230,7 @@
         >
           See all
         </button>
+
       </div>
 
       <div
@@ -229,13 +279,11 @@
         ✕
       </button>
 
-
       <video
         id="mainVideo"
         controls
         playsinline
       ></video>
-
 
       <div class="player-details">
 
@@ -248,7 +296,6 @@
         ></button>
 
         <p id="playerInfo"></p>
-
 
         <div class="player-actions">
 
@@ -317,7 +364,16 @@
         ✕
       </button>
 
-      <h1>Your Channel</h1>
+      <div
+        class="profile-edit-icon"
+        id="profileEditIcon"
+      >
+        G
+      </div>
+
+      <h1>
+        Edit Your Channel
+      </h1>
 
       <label>
         Channel name
@@ -329,6 +385,49 @@
         maxlength="40"
         placeholder="Your channel name"
       >
+
+      <label>
+        Channel bio
+      </label>
+
+      <textarea
+        id="profileBioInput"
+        maxlength="160"
+        placeholder="Tell people about your channel..."
+      ></textarea>
+
+      <label>
+        Profile color
+      </label>
+
+      <div class="profile-colors">
+
+        <button
+          class="color-choice purple"
+          onclick="chooseProfileColor('#673ab7')"
+        ></button>
+
+        <button
+          class="color-choice blue"
+          onclick="chooseProfileColor('#1976d2')"
+        ></button>
+
+        <button
+          class="color-choice green"
+          onclick="chooseProfileColor('#2e7d32')"
+        ></button>
+
+        <button
+          class="color-choice orange"
+          onclick="chooseProfileColor('#ef6c00')"
+        ></button>
+
+        <button
+          class="color-choice red"
+          onclick="chooseProfileColor('#d32f2f')"
+        ></button>
+
+      </div>
 
       <button
         class="primary-button"
@@ -374,9 +473,17 @@
           G
         </div>
 
-        <div>
+        <div class="channel-info">
+
           <h1 id="channelName"></h1>
+
           <p id="channelStats"></p>
+
+          <p
+            class="channel-bio"
+            id="channelBio"
+          ></p>
+
         </div>
 
       </div>
@@ -403,8 +510,9 @@
 
   <!-- ==================== SUPABASE ==================== -->
 
- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="script.js?v=3"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <script src="script.js?v=4"></script>
 
 </body>
 </html>
