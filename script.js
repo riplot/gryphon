@@ -304,25 +304,17 @@ async function loadVideos() {
   }
 
 
-  /* ---------------------------------------------
-     ADD STARTER VIDEO
-     --------------------------------------------- */
+/* ADD STARTER VIDEO ONLY IF IT REALLY EXISTS */
 
-  const hasStarter =
-    merged.some(
-      video =>
-        video.storage_path ===
-        "video1.mp4"
-    );
+const hasStarter =
+  merged.some(
+    video =>
+      video.storage_path === "video1.mp4"
+  );
 
-
-  if (!hasStarter) {
-
-    merged.unshift(
-      starterVideos[0]
-    );
-
-  }
+if (!hasStarter) {
+  merged.push(starterVideos[0]);
+}
 
 
   /* ---------------------------------------------
