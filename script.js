@@ -1,5 +1,10 @@
-const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co"; 
+/* =========================================================
+   SUPABASE
+   ========================================================= */
+
+const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bGhzamlrdXJobHFkcXVmdnRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NDg3MTIsImV4cCI6MjEwNTIyNDcxMn0.1vgRpmh33I3Ke_CxN-RwyhTRh-s8VRrrjora0ifhWW4";
+
 
 const supabaseClient =
   window.supabase.createClient(
@@ -9,13 +14,33 @@ const supabaseClient =
 
 
 /* =========================================================
-   LOCAL USER / CHANNEL
+   AUTH
+   ========================================================= */
+
+let currentUser = null;
+
+let authMode = "signin";
+
+
+function getRedirectUrl() {
+
+  return (
+    window.location.origin +
+    window.location.pathname
+  );
+
+}
+
+
+/* =========================================================
+   LOCAL / PROFILE
    ========================================================= */
 
 let visitorId =
   localStorage.getItem(
     "gryphontube_visitor_id"
   );
+
 
 if (!visitorId) {
 
@@ -73,14 +98,766 @@ document.addEventListener(
   "DOMContentLoaded",
   function () {
 
-    updateProfileButton();
-
-    updateProfileEditorIcon();
-
-    loadVideos();
+    initializeApp();
 
   }
 );
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+async function initializeApp() {
+
+  const {
+    data: {
+      session
+    }
+  } =
+    await supabaseClient.auth.getSession();
+
+
+  applyAuthSession(
+    session
+  );
+
+
+  await loadVideos();
+
+
+  supabaseClient.auth.onAuthStateChange(
+    function (
+      event,
+      session
+    ) {
+
+      setTimeout(
+        async function () {
+
+          applyAuthSession(
+            session
+          );
+
+
+          await loadVideos();
+
+
+          if (
+            event ===
+            "SIGNED_IN"
+          ) {
+
+            closeAccount();
+
+          }
+
+        },
+        0
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   APPLY AUTH SESSION
+   ========================================================= */
+
+function applyAuthSession(
+  session
+) {
+
+  currentUser =
+    session?.user || null;
+
+
+  if (currentUser) {
+
+    visitorId =
+      currentUser.id;
+
+
+    const metadata =
+      currentUser.user_metadata ||
+      {};
+
+
+    creatorName =
+      metadata.creator_name ||
+      creatorName ||
+      "You";
+
+
+    creatorBio =
+      metadata.bio ||
+      creatorBio ||
+      "Welcome to my GryphonTube channel!";
+
+
+    creatorColor =
+      metadata.color ||
+      creatorColor ||
+      "#673ab7";
+
+
+    localStorage.setItem(
+      "gryphontube_creator_name",
+      creatorName
+    );
+
+
+    localStorage.setItem(
+      "gryphontube_creator_bio",
+      creatorBio
+    );
+
+
+    localStorage.setItem(
+      "gryphontube_creator_color",
+      creatorColor
+    );
+
+  }
+
+
+  updateProfileButton();
+
+}
+
+
+/* =========================================================
+   ACCOUNT MODAL
+   ========================================================= */
+
+function openAccount() {
+
+  if (currentUser) {
+
+    showLoggedInAccount();
+
+  } else {
+
+    showLoggedOutAccount();
+
+  }
+
+
+  document.getElementById(
+    "accountModal"
+  ).classList.remove(
+    "hidden"
+  );
+
+}
+
+
+function closeAccount() {
+
+  document.getElementById(
+    "accountModal"
+  ).classList.add(
+    "hidden"
+  );
+
+}
+
+
+function showLoggedOutAccount() {
+
+  document.getElementById(
+    "loggedOutAccount"
+  ).classList.remove(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "loggedInAccount"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  setAuthMode(
+    authMode
+  );
+
+}
+
+
+function showLoggedInAccount() {
+
+  document.getElementById(
+    "loggedOutAccount"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "loggedInAccount"
+  ).classList.remove(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "accountEmail"
+  ).textContent =
+    currentUser.email;
+
+
+  document.getElementById(
+    "accountChannelName"
+  ).value =
+    creatorName;
+
+
+  document.getElementById(
+    "accountBio"
+  ).value =
+    creatorBio;
+
+
+  updateAccountIcon();
+
+}
+
+
+/* =========================================================
+   AUTH MODE
+   ========================================================= */
+
+function switchAuthMode() {
+
+  authMode =
+    authMode === "signin"
+      ? "signup"
+      : "signin";
+
+
+  setAuthMode(
+    authMode
+  );
+
+}
+
+
+function setAuthMode(
+  mode
+) {
+
+  authMode =
+    mode;
+
+
+  const title =
+    document.getElementById(
+      "authTitle"
+    );
+
+
+  const submit =
+    document.getElementById(
+      "authSubmitButton"
+    );
+
+
+  const switchButton =
+    document.getElementById(
+      "authSwitchButton"
+    );
+
+
+  const signupFields =
+    document.getElementById(
+      "signupFields"
+    );
+
+
+  const status =
+    document.getElementById(
+      "authStatus"
+    );
+
+
+  status.textContent =
+    "";
+
+
+  if (
+    mode === "signup"
+  ) {
+
+    title.textContent =
+      "Create your GryphonTube account";
+
+
+    submit.textContent =
+      "Create Account";
+
+
+    switchButton.textContent =
+      "Already have an account? Sign In";
+
+
+    signupFields.classList.remove(
+      "hidden"
+    );
+
+
+  } else {
+
+    title.textContent =
+      "Sign in to GryphonTube";
+
+
+    submit.textContent =
+      "Sign In";
+
+
+    switchButton.textContent =
+      "Create an account";
+
+
+    signupFields.classList.add(
+      "hidden"
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   SIGN UP / SIGN IN
+   ========================================================= */
+
+async function submitAuth() {
+
+  const email =
+    document.getElementById(
+      "authEmail"
+    ).value
+      .trim();
+
+
+  const password =
+    document.getElementById(
+      "authPassword"
+    ).value;
+
+
+  const status =
+    document.getElementById(
+      "authStatus"
+    );
+
+
+  if (!email) {
+
+    status.textContent =
+      "Enter your email.";
+
+    return;
+
+  }
+
+
+  if (
+    password.length < 6
+  ) {
+
+    status.textContent =
+      "Password must be at least 6 characters.";
+
+    return;
+
+  }
+
+
+  status.textContent =
+    "Working...";
+
+
+  if (
+    authMode === "signup"
+  ) {
+
+    const channelName =
+      document.getElementById(
+        "authChannelName"
+      ).value
+        .trim();
+
+
+    const bio =
+      document.getElementById(
+        "authBio"
+      ).value
+        .trim();
+
+
+    if (!channelName) {
+
+      status.textContent =
+        "Enter a channel name.";
+
+      return;
+
+    }
+
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.signUp({
+
+        email:
+          email,
+
+        password:
+          password,
+
+        options: {
+
+          emailRedirectTo:
+            getRedirectUrl(),
+
+          data: {
+
+            creator_name:
+              channelName,
+
+            bio:
+              bio ||
+              "Welcome to my GryphonTube channel!",
+
+            color:
+              creatorColor
+
+          }
+
+        }
+
+      });
+
+
+    if (error) {
+
+      console.error(
+        "SIGN UP ERROR:",
+        error
+      );
+
+
+      status.textContent =
+        error.message;
+
+
+      return;
+
+    }
+
+
+    if (
+      data.session
+    ) {
+
+      status.textContent =
+        "Account created!";
+
+    } else {
+
+      status.textContent =
+        "Account created. Check your email to confirm it, then sign in.";
+
+    }
+
+
+  } else {
+
+    const {
+      data,
+      error
+    } =
+      await supabaseClient.auth.signInWithPassword({
+
+        email:
+          email,
+
+        password:
+          password
+
+      });
+
+
+    if (error) {
+
+      console.error(
+        "SIGN IN ERROR:",
+        error
+      );
+
+
+      status.textContent =
+        error.message;
+
+
+      return;
+
+    }
+
+
+    if (
+      data.user
+    ) {
+
+      status.textContent =
+        "Signed in!";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   SIGN OUT
+   ========================================================= */
+
+async function signOut() {
+
+  const {
+    error
+  } =
+    await supabaseClient.auth.signOut();
+
+
+  if (error) {
+
+    alert(
+      "Sign out failed: " +
+      error.message
+    );
+
+    return;
+
+  }
+
+
+  currentUser =
+    null;
+
+
+  visitorId =
+    crypto.randomUUID();
+
+
+  updateProfileButton();
+
+  closeAccount();
+
+}
+
+
+/* =========================================================
+   PROFILE
+   ========================================================= */
+
+async function saveAccountProfile() {
+
+  if (!currentUser) {
+
+    return;
+
+  }
+
+
+  const name =
+    document.getElementById(
+      "accountChannelName"
+    ).value
+      .trim();
+
+
+  const bio =
+    document.getElementById(
+      "accountBio"
+    ).value
+      .trim();
+
+
+  if (!name) {
+
+    alert(
+      "Enter a channel name."
+    );
+
+    return;
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient.auth.updateUser({
+
+      data: {
+
+        creator_name:
+          name,
+
+        bio:
+          bio ||
+          "Welcome to my GryphonTube channel!",
+
+        color:
+          creatorColor
+
+      }
+
+    });
+
+
+  if (error) {
+
+    alert(
+      "Profile update failed: " +
+      error.message
+    );
+
+    return;
+
+  }
+
+
+  creatorName =
+    data.user.user_metadata.creator_name;
+
+
+  creatorBio =
+    data.user.user_metadata.bio;
+
+
+  creatorColor =
+    data.user.user_metadata.color;
+
+
+  localStorage.setItem(
+    "gryphontube_creator_name",
+    creatorName
+  );
+
+
+  localStorage.setItem(
+    "gryphontube_creator_bio",
+    creatorBio
+  );
+
+
+  localStorage.setItem(
+    "gryphontube_creator_color",
+    creatorColor
+  );
+
+
+  updateProfileButton();
+
+  updateAccountIcon();
+
+
+  alert(
+    "Profile saved!"
+  );
+
+}
+
+
+function chooseProfileColor(
+  color
+) {
+
+  creatorColor =
+    color;
+
+
+  localStorage.setItem(
+    "gryphontube_creator_color",
+    creatorColor
+  );
+
+
+  updateProfileButton();
+
+  updateAccountIcon();
+
+}
+
+
+function updateAccountIcon() {
+
+  const icon =
+    document.getElementById(
+      "accountIcon"
+    );
+
+
+  if (!icon) {
+    return;
+  }
+
+
+  icon.textContent =
+    getInitial(
+      creatorName
+    );
+
+
+  icon.style.background =
+    creatorColor;
+
+}
+
+
+function updateProfileButton() {
+
+  const button =
+    document.getElementById(
+      "profileButton"
+    );
+
+
+  if (!button) {
+    return;
+  }
+
+
+  button.textContent =
+    getInitial(
+      creatorName
+    );
+
+
+  button.style.background =
+    currentUser
+      ? creatorColor
+      : "#673ab7";
+
+
+  button.title =
+    currentUser
+      ? currentUser.email
+      : "Sign in / Create account";
+
+}
 
 
 /* =========================================================
@@ -119,6 +896,7 @@ async function loadVideos() {
 
               const name =
                 file.name.toLowerCase();
+
 
               return (
                 name.endsWith(".mp4") ||
@@ -193,10 +971,6 @@ async function loadVideos() {
   }
 
 
-  /* =======================================================
-     LOAD DATABASE METADATA
-     ======================================================= */
-
   let dbVideos = [];
 
 
@@ -241,10 +1015,6 @@ async function loadVideos() {
 
   }
 
-
-  /* =======================================================
-     MERGE STORAGE + DATABASE
-     ======================================================= */
 
   const merged = [];
 
@@ -313,10 +1083,6 @@ async function loadVideos() {
   }
 
 
-  /* =======================================================
-     DATABASE ITEMS NOT FOUND IN STORAGE LIST
-     ======================================================= */
-
   for (
     const dbVideo
     of dbVideos
@@ -380,10 +1146,6 @@ async function loadVideos() {
   }
 
 
-  /* =======================================================
-     SAVE
-     ======================================================= */
-
   videos =
     merged.sort(
       (a, b) =>
@@ -416,10 +1178,6 @@ function displayHomepage() {
 }
 
 
-/* =========================================================
-   FEATURED
-   ========================================================= */
-
 function displayFeatured() {
 
   const container =
@@ -439,7 +1197,7 @@ function displayFeatured() {
           </h2>
 
           <p>
-            Upload your first video!
+            Sign in and upload your first video!
           </p>
 
         </div>
@@ -471,24 +1229,24 @@ function displayFeatured() {
         <div class="featured-info">
 
           <h2>
-            ${escapeHtml(video.title)}
+            ${escapeHtml(
+              video.title
+            )}
           </h2>
 
           <p>
-            ${escapeHtml(video.creator_name)}
-          </p>
-
-          <p>
-            ${formatViews(video.views)}
-            •
-            ${formatDate(video.created_at)}
-          </p>
-
-          <p>
             ${escapeHtml(
-              getChannelBio(
-                video.creator_name
-              )
+              video.creator_name
+            )}
+          </p>
+
+          <p>
+            ${formatViews(
+              video.views
+            )}
+            •
+            ${formatDate(
+              video.created_at
             )}
           </p>
 
@@ -500,26 +1258,23 @@ function displayFeatured() {
 }
 
 
-/* =========================================================
-   RECENT
-   ========================================================= */
-
 function displayRecent() {
 
   renderVideoGrid(
-    videos.slice(0, 6),
+
+    videos.slice(
+      0,
+      6
+    ),
 
     document.getElementById(
       "recentGrid"
     )
+
   );
 
 }
 
-
-/* =========================================================
-   FILTER
-   ========================================================= */
 
 function applyCurrentFilter() {
 
@@ -551,11 +1306,13 @@ function applyCurrentFilter() {
 
 
   renderVideoGrid(
+
     results,
 
     document.getElementById(
       "videoGrid"
     )
+
   );
 
 }
@@ -619,7 +1376,9 @@ function renderVideoGrid(
               preload="metadata"
             ></video>
 
-            <span class="duration">
+            <span
+              class="duration"
+            >
               --
             </span>
 
@@ -643,17 +1402,25 @@ function renderVideoGrid(
             <div class="video-text">
 
               <h2>
-                ${escapeHtml(video.title)}
+                ${escapeHtml(
+                  video.title
+                )}
               </h2>
 
               <p>
-                ${escapeHtml(video.creator_name)}
+                ${escapeHtml(
+                  video.creator_name
+                )}
               </p>
 
               <p>
-                ${formatViews(video.views)}
+                ${formatViews(
+                  video.views
+                )}
                 •
-                ${formatDate(video.created_at)}
+                ${formatDate(
+                  video.created_at
+                )}
               </p>
 
             </div>
@@ -716,6 +1483,22 @@ function renderVideoGrid(
 async function uploadVideo(
   event
 ) {
+
+  if (!currentUser) {
+
+    event.target.value =
+      "";
+
+    alert(
+      "You need an account to upload a video."
+    );
+
+    openAccount();
+
+    return;
+
+  }
+
 
   const file =
     event.target.files[0];
@@ -815,68 +1598,52 @@ async function uploadVideo(
         );
 
 
-    /* =====================================================
-       DATABASE METADATA
-       ===================================================== */
-
     let databaseVideo =
       null;
 
 
-    try {
+    const {
+      data,
+      error: metadataError
+    } =
+      await supabaseClient
+        .from("videos")
+        .insert({
 
-      const {
-        data,
-        error
-      } =
-        await supabaseClient
-          .from("videos")
-          .insert({
+          storage_path:
+            fileName,
 
-            storage_path:
-              fileName,
+          title:
+            file.name.replace(
+              /\.[^/.]+$/,
+              ""
+            ),
 
-            title:
-              file.name.replace(
-                /\.[^/.]+$/,
-                ""
-              ),
+          creator_name:
+            creatorName,
 
-            creator_name:
-              creatorName,
+          category:
+            "Funny",
 
-            category:
-              "Funny",
+          views:
+            0
 
-            views:
-              0
-
-          })
-          .select()
-          .single();
+        })
+        .select()
+        .single();
 
 
-      if (error) {
-
-        console.warn(
-          "Metadata save warning:",
-          error.message
-        );
-
-      } else {
-
-        databaseVideo =
-          data;
-
-      }
-
-
-    } catch (error) {
+    if (metadataError) {
 
       console.warn(
-        "Metadata save error:",
-        error
+        "Metadata save warning:",
+        metadataError.message
       );
+
+    } else {
+
+      databaseVideo =
+        data;
 
     }
 
@@ -957,7 +1724,7 @@ async function uploadVideo(
 
 
 /* =========================================================
-   OPEN VIDEO
+   VIDEO PLAYER
    ========================================================= */
 
 async function openVideo(
@@ -1000,12 +1767,6 @@ async function openVideo(
     video.creator_name;
 
 
-  creatorButton.style.color =
-    getCreatorColor(
-      video.creator_name
-    );
-
-
   document.getElementById(
     "playerInfo"
   ).textContent =
@@ -1038,10 +1799,6 @@ async function openVideo(
 }
 
 
-/* =========================================================
-   OPEN VIDEO BY PATH
-   ========================================================= */
-
 function openVideoByPath(
   path
 ) {
@@ -1064,10 +1821,6 @@ function openVideoByPath(
 
 }
 
-
-/* =========================================================
-   CLOSE PLAYER
-   ========================================================= */
 
 function closePlayer() {
 
@@ -1169,19 +1922,21 @@ async function incrementViews() {
 
 async function toggleLike() {
 
-  if (!currentVideo) {
+  if (!currentUser) {
+
+    alert(
+      "Sign in to like videos."
+    );
+
+    openAccount();
+
     return;
+
   }
 
 
-  if (
-    !currentVideo.id
-  ) {
-
-    toggleLocalLike();
-
+  if (!currentVideo) {
     return;
-
   }
 
 
@@ -1201,7 +1956,7 @@ async function toggleLike() {
         )
         .eq(
           "visitor_id",
-          visitorId
+          currentUser.id
         );
 
 
@@ -1223,6 +1978,17 @@ async function toggleLike() {
 
   } else {
 
+    if (!currentVideo.id) {
+
+      alert(
+        "This video doesn't have database metadata yet."
+      );
+
+      return;
+
+    }
+
+
     const {
       error
     } =
@@ -1234,7 +2000,7 @@ async function toggleLike() {
             currentVideo.id,
 
           visitor_id:
-            visitorId
+            currentUser.id
 
         });
 
@@ -1262,10 +2028,6 @@ async function toggleLike() {
 }
 
 
-/* =========================================================
-   LIKE UI
-   ========================================================= */
-
 async function updateLikeUI() {
 
   const button =
@@ -1279,37 +2041,20 @@ async function updateLikeUI() {
   }
 
 
-  if (
-    !currentVideo.id
-  ) {
-
-    const key =
-      getLocalLikeKey(
-        currentVideo
-      );
-
-
-    const liked =
-      localStorage.getItem(
-        key
-      ) === "1";
-
-
-    currentVideoLiked =
-      liked;
-
-
-    button.classList.toggle(
-      "liked",
-      liked
-    );
-
+  if (!currentUser) {
 
     button.textContent =
-      liked
-        ? "❤️ Liked"
-        : "❤️ Like";
+      "🔒 Sign in to Like";
 
+    return;
+
+  }
+
+
+  if (!currentVideo.id) {
+
+    button.textContent =
+      "❤️ Like";
 
     return;
 
@@ -1328,7 +2073,12 @@ async function updateLikeUI() {
       .eq(
         "video_id",
         currentVideo.id
-      );
+      )
+      .eq(
+        "visitor_id",
+        currentUser.id
+      )
+      .maybeSingle();
 
 
   if (error) {
@@ -1343,79 +2093,14 @@ async function updateLikeUI() {
   }
 
 
-  const liked =
-    (data || []).some(
-      row =>
-        row.visitor_id ===
-        visitorId
-    );
-
-
   currentVideoLiked =
-    liked;
-
-
-  button.classList.toggle(
-    "liked",
-    liked
-  );
+    !!data;
 
 
   button.textContent =
-    liked
+    currentVideoLiked
       ? "❤️ Liked"
       : "❤️ Like";
-
-}
-
-
-/* =========================================================
-   LOCAL LIKE
-   ========================================================= */
-
-function toggleLocalLike() {
-
-  const key =
-    getLocalLikeKey(
-      currentVideo
-    );
-
-
-  const liked =
-    localStorage.getItem(
-      key
-    ) === "1";
-
-
-  if (liked) {
-
-    localStorage.removeItem(
-      key
-    );
-
-  } else {
-
-    localStorage.setItem(
-      key,
-      "1"
-    );
-
-  }
-
-
-  updateLikeUI();
-
-}
-
-
-function getLocalLikeKey(
-  video
-) {
-
-  return (
-    "gryphontube_like_" +
-    video.storage_path
-  );
 
 }
 
@@ -1437,31 +2122,10 @@ async function loadComments() {
   }
 
 
-  if (
-    !currentVideo.id
-  ) {
+  if (!currentVideo.id) {
 
-    const key =
-      getLocalCommentKey(
-        currentVideo
-      );
-
-
-    const stored =
-      localStorage.getItem(
-        key
-      );
-
-
-    currentComments =
-      stored
-        ? JSON.parse(
-            stored
-          )
-        : [];
-
-
-    renderComments();
+    list.innerHTML =
+      "<p>No comments yet.</p>";
 
     return;
 
@@ -1515,10 +2179,6 @@ async function loadComments() {
 }
 
 
-/* =========================================================
-   RENDER COMMENTS
-   ========================================================= */
-
 function renderComments() {
 
   const list =
@@ -1531,7 +2191,9 @@ function renderComments() {
     "";
 
 
-  if (!currentComments.length) {
+  if (
+    !currentComments.length
+  ) {
 
     list.innerHTML =
       "<p>No comments yet. Be the first!</p>";
@@ -1573,6 +2235,7 @@ function renderComments() {
 
           </div>
 
+
           <p>
             ${escapeHtml(
               comment.body
@@ -1591,11 +2254,20 @@ function renderComments() {
 }
 
 
-/* =========================================================
-   ADD COMMENT
-   ========================================================= */
-
 async function addComment() {
+
+  if (!currentUser) {
+
+    alert(
+      "Sign in to comment."
+    );
+
+    openAccount();
+
+    return;
+
+  }
+
 
   if (!currentVideo) {
     return;
@@ -1617,50 +2289,11 @@ async function addComment() {
   }
 
 
-  if (
-    !currentVideo.id
-  ) {
+  if (!currentVideo.id) {
 
-    const key =
-      getLocalCommentKey(
-        currentVideo
-      );
-
-
-    const comments =
-      JSON.parse(
-        localStorage.getItem(
-          key
-        ) || "[]"
-      );
-
-
-    comments.unshift({
-
-      creator_name:
-        creatorName,
-
-      body:
-        text,
-
-      created_at:
-        new Date().toISOString()
-
-    });
-
-
-    localStorage.setItem(
-      key,
-      JSON.stringify(
-        comments
-      )
+    alert(
+      "This video doesn't have database metadata yet."
     );
-
-
-    input.value =
-      "";
-
-    await loadComments();
 
     return;
 
@@ -1678,7 +2311,7 @@ async function addComment() {
           currentVideo.id,
 
         visitor_id:
-          visitorId,
+          currentUser.id,
 
         creator_name:
           creatorName,
@@ -1716,207 +2349,10 @@ async function addComment() {
 
 
 /* =========================================================
-   LOCAL COMMENTS
-   ========================================================= */
-
-function getLocalCommentKey(
-  video
-) {
-
-  return (
-    "gryphontube_comments_" +
-    video.storage_path
-  );
-
-}
-
-
-/* =========================================================
-   CHANNEL / PROFILE
-   ========================================================= */
-
-function openProfile() {
-
-  document.getElementById(
-    "profileNameInput"
-  ).value =
-    creatorName;
-
-
-  document.getElementById(
-    "profileBioInput"
-  ).value =
-    creatorBio;
-
-
-  updateProfileEditorIcon();
-
-
-  document.getElementById(
-    "profileModal"
-  ).classList.remove(
-    "hidden"
-  );
-
-}
-
-
-function closeProfile() {
-
-  document.getElementById(
-    "profileModal"
-  ).classList.add(
-    "hidden"
-  );
-
-}
-
-
-function saveProfile() {
-
-  const name =
-    document.getElementById(
-      "profileNameInput"
-    ).value.trim();
-
-
-  const bio =
-    document.getElementById(
-      "profileBioInput"
-    ).value.trim();
-
-
-  if (!name) {
-
-    alert(
-      "Enter a channel name."
-    );
-
-    return;
-
-  }
-
-
-  creatorName =
-    name;
-
-
-  creatorBio =
-    bio ||
-    "Welcome to my GryphonTube channel!";
-
-
-  localStorage.setItem(
-    "gryphontube_creator_name",
-    creatorName
-  );
-
-
-  localStorage.setItem(
-    "gryphontube_creator_bio",
-    creatorBio
-  );
-
-
-  localStorage.setItem(
-    "gryphontube_creator_color",
-    creatorColor
-  );
-
-
-  updateProfileButton();
-
-  updateProfileEditorIcon();
-
-
-  closeProfile();
-
-
-  alert(
-    "Channel saved!"
-  );
-
-}
-
-
-function chooseProfileColor(
-  color
-) {
-
-  creatorColor =
-    color;
-
-
-  localStorage.setItem(
-    "gryphontube_creator_color",
-    creatorColor
-  );
-
-
-  updateProfileButton();
-
-  updateProfileEditorIcon();
-
-}
-
-
-function updateProfileButton() {
-
-  const button =
-    document.getElementById(
-      "profileButton"
-    );
-
-
-  if (!button) {
-    return;
-  }
-
-
-  button.textContent =
-    getInitial(
-      creatorName
-    );
-
-
-  button.style.background =
-    creatorColor;
-
-}
-
-
-function updateProfileEditorIcon() {
-
-  const icon =
-    document.getElementById(
-      "profileEditIcon"
-    );
-
-
-  if (!icon) {
-    return;
-  }
-
-
-  icon.textContent =
-    getInitial(
-      creatorName
-    );
-
-
-  icon.style.background =
-    creatorColor;
-
-}
-
-
-/* =========================================================
-   OPEN CHANNEL
+   CHANNEL
    ========================================================= */
 
 function openOwnChannel() {
-
-  closeProfile();
 
   openChannel(
     creatorName
@@ -2023,6 +2459,44 @@ function closeChannel() {
 }
 
 
+function getChannelBio(
+  name
+) {
+
+  if (
+    name ===
+    creatorName
+  ) {
+
+    return creatorBio;
+
+  }
+
+
+  return "";
+
+}
+
+
+function getCreatorColor(
+  name
+) {
+
+  if (
+    name ===
+    creatorName
+  ) {
+
+    return creatorColor;
+
+  }
+
+
+  return "#673ab7";
+
+}
+
+
 /* =========================================================
    HOME
    ========================================================= */
@@ -2067,10 +2541,6 @@ function showAll() {
 
 function showRecent() {
 
-  currentFilter =
-    "All";
-
-
   document.getElementById(
     "videoSectionTitle"
   ).textContent =
@@ -2078,6 +2548,7 @@ function showRecent() {
 
 
   renderVideoGrid(
+
     videos.slice(
       0,
       20
@@ -2086,16 +2557,8 @@ function showRecent() {
     document.getElementById(
       "videoGrid"
     )
+
   );
-
-
-  window.scrollTo({
-
-    top: 0,
-
-    behavior: "smooth"
-
-  });
 
 }
 
@@ -2106,6 +2569,19 @@ function showRecent() {
 
 async function showLiked() {
 
+  if (!currentUser) {
+
+    alert(
+      "Sign in to see your liked videos."
+    );
+
+    openAccount();
+
+    return;
+
+  }
+
+
   const likedVideos = [];
 
 
@@ -2114,59 +2590,31 @@ async function showLiked() {
     of videos
   ) {
 
-    let liked =
-      false;
+    if (!video.id) {
 
-
-    if (
-      video.id
-    ) {
-
-      try {
-
-        const {
-          data
-        } =
-          await supabaseClient
-            .from("video_likes")
-            .select(
-              "visitor_id"
-            )
-            .eq(
-              "video_id",
-              video.id
-            )
-            .eq(
-              "visitor_id",
-              visitorId
-            )
-            .maybeSingle();
-
-
-        liked =
-          !!data;
-
-
-      } catch (error) {
-
-        liked =
-          false;
-
-      }
-
-    } else {
-
-      liked =
-        localStorage.getItem(
-          getLocalLikeKey(
-            video
-          )
-        ) === "1";
+      continue;
 
     }
 
 
-    if (liked) {
+    const {
+      data
+    } =
+      await supabaseClient
+        .from("video_likes")
+        .select("visitor_id")
+        .eq(
+          "video_id",
+          video.id
+        )
+        .eq(
+          "visitor_id",
+          currentUser.id
+        )
+        .maybeSingle();
+
+
+    if (data) {
 
       likedVideos.push(
         video
@@ -2184,11 +2632,13 @@ async function showLiked() {
 
 
   renderVideoGrid(
+
     likedVideos,
 
     document.getElementById(
       "videoGrid"
     )
+
   );
 
 }
@@ -2211,19 +2661,12 @@ function filterCategory(
       ".category-bar button"
     )
     .forEach(
-      button =>
+      button => {
+
         button.classList.remove(
           "active"
-        )
-    );
+        );
 
-
-  document
-    .querySelectorAll(
-      ".category-bar button"
-    )
-    .forEach(
-      button => {
 
         if (
           button.textContent
@@ -2290,11 +2733,13 @@ function searchVideos() {
 
 
   renderVideoGrid(
+
     results,
 
     document.getElementById(
       "videoGrid"
     )
+
   );
 
 
@@ -2379,7 +2824,7 @@ function showNotifications() {
 
 
   setTimeout(
-    () => {
+    function () {
 
       box.classList.add(
         "hidden"
@@ -2427,48 +2872,6 @@ async function copyVideoLink() {
 
 
 /* =========================================================
-   PROFILE HELPERS
-   ========================================================= */
-
-function getChannelBio(
-  name
-) {
-
-  if (
-    name ===
-    creatorName
-  ) {
-
-    return creatorBio;
-
-  }
-
-
-  return "";
-
-}
-
-
-function getCreatorColor(
-  name
-) {
-
-  if (
-    name ===
-    creatorName
-  ) {
-
-    return creatorColor;
-
-  }
-
-
-  return "#673ab7";
-
-}
-
-
-/* =========================================================
    HELPERS
    ========================================================= */
 
@@ -2489,7 +2892,8 @@ function formatViews(
 
     return (
       (
-        number / 1000000
+        number /
+        1000000
       )
         .toFixed(1)
         .replace(
@@ -2509,7 +2913,8 @@ function formatViews(
 
     return (
       (
-        number / 1000
+        number /
+        1000
       )
         .toFixed(1)
         .replace(
@@ -2550,7 +2955,8 @@ function formatDate(
       (
         Date.now() -
         date.getTime()
-      ) / 1000
+      ) /
+      1000
     );
 
 
@@ -2565,7 +2971,8 @@ function formatDate(
 
   const minutes =
     Math.floor(
-      seconds / 60
+      seconds /
+      60
     );
 
 
@@ -2587,7 +2994,8 @@ function formatDate(
 
   const hours =
     Math.floor(
-      minutes / 60
+      minutes /
+      60
     );
 
 
@@ -2609,7 +3017,8 @@ function formatDate(
 
   const days =
     Math.floor(
-      hours / 24
+      hours /
+      24
     );
 
 
@@ -2657,12 +3066,14 @@ function formatDuration(
 
   const minutes =
     Math.floor(
-      seconds / 60
+      seconds /
+      60
     );
 
 
   const secs =
-    seconds % 60;
+    seconds %
+    60;
 
 
   return (
