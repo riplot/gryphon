@@ -1047,3 +1047,61 @@ section {
   }
 
 }
+/* =========================================================
+   ACCOUNT / AUTH
+   ========================================================= */
+
+.auth-window {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.auth-window h1 {
+  margin-top: 5px;
+}
+
+.auth-status {
+  min-height: 20px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.dark-mode .auth-status {
+  color: #aaa;
+}
+
+.account-email {
+  opacity: .7;
+  margin-bottom: 20px;
+}
+
+#authPassword {
+  margin-bottom: 5px;
+}
+
+.auth-window .profile-edit-icon {
+  margin-top: 5px;
+}
+
+.auth-window .primary-button {
+  margin-top: 20px;
+}
+
+#signupFields {
+  margin-top: 5px;
+}
+
+#signupFields.hidden,
+#loggedOutAccount.hidden,
+#loggedInAccount.hidden {
+  display: none !important;
+}
+
+#loggedOutAccount:not(.hidden),
+#loggedInAccount:not(.hidden) {
+  display: block;
+}
+
+.auth-window .secondary-button {
+  margin-top: 10px;
+}
