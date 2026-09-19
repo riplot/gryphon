@@ -1,17 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
   <title>GryphonTube</title>
 
-  <link rel="stylesheet" href="css.css">
+  <link
+    rel="stylesheet"
+    href="css.css"
+  >
+
 </head>
+
 
 <body>
 
   <!-- ==================== TOP BAR ==================== -->
+
   <header class="topbar">
 
     <button
@@ -21,13 +33,20 @@
       ☰
     </button>
 
+
     <div
       class="logo"
       onclick="showAll()"
     >
-      <span class="logo-icon">▶</span>
+
+      <span class="logo-icon">
+        ▶
+      </span>
+
       GryphonTube
+
     </div>
+
 
     <div class="search">
 
@@ -44,6 +63,7 @@
 
     </div>
 
+
     <div class="top-buttons">
 
       <button
@@ -53,12 +73,14 @@
         ⬆️
       </button>
 
+
       <button
         onclick="omega()"
         title="Dark mode"
       >
         🌙
       </button>
+
 
       <button
         onclick="showNotifications()"
@@ -67,11 +89,12 @@
         🔔
       </button>
 
+
       <button
         class="profile"
         id="profileButton"
-        onclick="openProfile()"
-        title="Profile"
+        onclick="openAccount()"
+        title="Account"
       >
         G
       </button>
@@ -107,6 +130,7 @@
       <span>Home</span>
     </button>
 
+
     <button
       class="side-button"
       onclick="showRecent()"
@@ -114,6 +138,7 @@
       🕒
       <span>Recent</span>
     </button>
+
 
     <button
       class="side-button"
@@ -123,9 +148,14 @@
       <span>Your Channel</span>
     </button>
 
+
     <div class="sidebar-divider"></div>
 
-    <h3>Categories</h3>
+
+    <h3>
+      Categories
+    </h3>
+
 
     <button
       class="side-button"
@@ -135,6 +165,7 @@
       <span>Gaming</span>
     </button>
 
+
     <button
       class="side-button"
       onclick="filterCategory('Music')"
@@ -143,6 +174,7 @@
       <span>Music</span>
     </button>
 
+
     <button
       class="side-button"
       onclick="filterCategory('Animation')"
@@ -150,6 +182,7 @@
       🎨
       <span>Animation</span>
     </button>
+
 
     <button
       class="side-button"
@@ -175,19 +208,31 @@
         All
       </button>
 
-      <button onclick="filterCategory('Gaming')">
+
+      <button
+        onclick="filterCategory('Gaming')"
+      >
         Gaming
       </button>
 
-      <button onclick="filterCategory('Music')">
+
+      <button
+        onclick="filterCategory('Music')"
+      >
         Music
       </button>
 
-      <button onclick="filterCategory('Animation')">
+
+      <button
+        onclick="filterCategory('Animation')"
+      >
         Animation
       </button>
 
-      <button onclick="filterCategory('Funny')">
+
+      <button
+        onclick="filterCategory('Funny')"
+      >
         Funny
       </button>
 
@@ -196,10 +241,7 @@
 
     <!-- ==================== FEATURED ==================== -->
 
-    <section
-      id="featuredSection"
-      class="featured-section"
-    >
+    <section>
 
       <div class="section-header">
 
@@ -224,6 +266,7 @@
           Recently uploaded
         </h1>
 
+
         <button
           class="text-button"
           onclick="showRecent()"
@@ -232,6 +275,7 @@
         </button>
 
       </div>
+
 
       <div
         id="recentGrid"
@@ -252,6 +296,7 @@
         </h1>
 
       </div>
+
 
       <div
         id="videoGrid"
@@ -279,15 +324,18 @@
         ✕
       </button>
 
+
       <video
         id="mainVideo"
         controls
         playsinline
       ></video>
 
+
       <div class="player-details">
 
         <h1 id="playerTitle"></h1>
+
 
         <button
           class="creator-link"
@@ -295,7 +343,9 @@
           onclick="openSelectedCreatorChannel()"
         ></button>
 
+
         <p id="playerInfo"></p>
+
 
         <div class="player-actions">
 
@@ -305,6 +355,7 @@
           >
             ❤️ Like
           </button>
+
 
           <button onclick="copyVideoLink()">
             🔗 Share
@@ -321,6 +372,7 @@
             Comments
           </h2>
 
+
           <div class="comment-box">
 
             <input
@@ -331,11 +383,13 @@
               onkeydown="if(event.key==='Enter') addComment()"
             >
 
+
             <button onclick="addComment()">
               Comment
             </button>
 
           </div>
+
 
           <div id="commentList"></div>
 
@@ -348,107 +402,231 @@
   </div>
 
 
-  <!-- ==================== PROFILE MODAL ==================== -->
+  <!-- ==================== ACCOUNT ==================== -->
 
   <div
-    id="profileModal"
+    id="accountModal"
     class="overlay hidden"
   >
 
-    <div class="modal-window">
+    <div class="modal-window auth-window">
 
       <button
         class="close-player"
-        onclick="closeProfile()"
+        onclick="closeAccount()"
       >
         ✕
       </button>
 
+
+      <!-- LOGGED OUT -->
+
+      <div id="loggedOutAccount">
+
+        <div
+          class="profile-edit-icon"
+          id="authIcon"
+        >
+          G
+        </div>
+
+
+        <h1 id="authTitle">
+          Sign in to GryphonTube
+        </h1>
+
+
+        <p
+          id="authStatus"
+          class="auth-status"
+        ></p>
+
+
+        <label>
+          Email
+        </label>
+
+
+        <input
+          id="authEmail"
+          type="email"
+          placeholder="you@example.com"
+          autocomplete="email"
+        >
+
+
+        <label>
+          Password
+        </label>
+
+
+        <input
+          id="authPassword"
+          type="password"
+          placeholder="Password"
+          autocomplete="current-password"
+        >
+
+
+        <div
+          id="signupFields"
+          class="hidden"
+        >
+
+          <label>
+            Channel name
+          </label>
+
+
+          <input
+            id="authChannelName"
+            type="text"
+            maxlength="40"
+            placeholder="Your channel name"
+          >
+
+
+          <label>
+            Channel bio
+          </label>
+
+
+          <textarea
+            id="authBio"
+            maxlength="160"
+            placeholder="Tell people about your channel..."
+          ></textarea>
+
+        </div>
+
+
+        <button
+          id="authSubmitButton"
+          class="primary-button"
+          onclick="submitAuth()"
+        >
+          Sign In
+        </button>
+
+
+        <button
+          id="authSwitchButton"
+          class="secondary-button"
+          onclick="switchAuthMode()"
+        >
+          Create an account
+        </button>
+
+      </div>
+
+
+      <!-- LOGGED IN -->
+
       <div
-        class="profile-edit-icon"
-        id="profileEditIcon"
+        id="loggedInAccount"
+        class="hidden"
       >
-        G
+
+        <div
+          class="profile-edit-icon"
+          id="accountIcon"
+        >
+          G
+        </div>
+
+
+        <h1>
+          Your Account
+        </h1>
+
+
+        <p
+          id="accountEmail"
+          class="account-email"
+        ></p>
+
+
+        <label>
+          Channel name
+        </label>
+
+
+        <input
+          id="accountChannelName"
+          type="text"
+          maxlength="40"
+        >
+
+
+        <label>
+          Channel bio
+        </label>
+
+
+        <textarea
+          id="accountBio"
+          maxlength="160"
+        ></textarea>
+
+
+        <label>
+          Profile color
+        </label>
+
+
+        <div class="profile-colors">
+
+          <button
+            class="color-choice purple"
+            onclick="chooseProfileColor('#673ab7')"
+          ></button>
+
+          <button
+            class="color-choice blue"
+            onclick="chooseProfileColor('#1976d2')"
+          ></button>
+
+          <button
+            class="color-choice green"
+            onclick="chooseProfileColor('#2e7d32')"
+          ></button>
+
+          <button
+            class="color-choice orange"
+            onclick="chooseProfileColor('#ef6c00')"
+          ></button>
+
+          <button
+            class="color-choice red"
+            onclick="chooseProfileColor('#d32f2f')"
+          ></button>
+
+        </div>
+
+
+        <button
+          class="primary-button"
+          onclick="saveAccountProfile()"
+        >
+          Save Profile
+        </button>
+
+
+        <button
+          class="secondary-button"
+          onclick="signOut()"
+        >
+          Sign Out
+        </button>
+
       </div>
-
-      <h1>
-        Edit Your Channel
-      </h1>
-
-      <label>
-        Channel name
-      </label>
-
-      <input
-        id="profileNameInput"
-        type="text"
-        maxlength="40"
-        placeholder="Your channel name"
-      >
-
-      <label>
-        Channel bio
-      </label>
-
-      <textarea
-        id="profileBioInput"
-        maxlength="160"
-        placeholder="Tell people about your channel..."
-      ></textarea>
-
-      <label>
-        Profile color
-      </label>
-
-      <div class="profile-colors">
-
-        <button
-          class="color-choice purple"
-          onclick="chooseProfileColor('#673ab7')"
-        ></button>
-
-        <button
-          class="color-choice blue"
-          onclick="chooseProfileColor('#1976d2')"
-        ></button>
-
-        <button
-          class="color-choice green"
-          onclick="chooseProfileColor('#2e7d32')"
-        ></button>
-
-        <button
-          class="color-choice orange"
-          onclick="chooseProfileColor('#ef6c00')"
-        ></button>
-
-        <button
-          class="color-choice red"
-          onclick="chooseProfileColor('#d32f2f')"
-        ></button>
-
-      </div>
-
-      <button
-        class="primary-button"
-        onclick="saveProfile()"
-      >
-        Save Channel
-      </button>
-
-      <button
-        class="secondary-button"
-        onclick="openOwnChannel()"
-      >
-        View Channel
-      </button>
 
     </div>
 
   </div>
 
 
-  <!-- ==================== CHANNEL MODAL ==================== -->
+  <!-- ==================== CHANNEL ==================== -->
 
   <div
     id="channelModal"
@@ -464,6 +642,7 @@
         ✕
       </button>
 
+
       <div class="channel-header">
 
         <div
@@ -472,6 +651,7 @@
         >
           G
         </div>
+
 
         <div class="channel-info">
 
@@ -487,6 +667,7 @@
         </div>
 
       </div>
+
 
       <div
         id="channelGrid"
@@ -512,7 +693,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <script src="script.js?v=4"></script>
+  <script src="script.js?v=5"></script>
 
 </body>
+
 </html>
