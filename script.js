@@ -1758,79 +1758,45 @@ async function uploadVideo(
 }
 
 
-/* =========================================================
-   VIDEO PLAYER
-   ========================================================= */
+async function openVideo(video) {
 
-async function openVideo(
-  video
-) {
-
-  currentVideo =
-    video;
-
+  currentVideo = video;
 
   const player =
-    document.getElementById(
-      "player"
-    );
-
+    document.getElementById("player");
 
   const mainVideo =
-    document.getElementById(
-      "mainVideo"
-    );
+    document.getElementById("mainVideo");
 
+  mainVideo.src = video.video;
 
-  mainVideo.src =
-    video.video;
-
-
-  document.getElementById(
-    "playerTitle"
-  ).textContent =
+  document.getElementById("playerTitle").textContent =
     video.title;
 
-
   const creatorButton =
-    document.getElementById(
-      "playerCreator"
-    );
-
+    document.getElementById("playerCreator");
 
   creatorButton.textContent =
     video.creator_name;
 
-
-  document.getElementById(
-    "playerInfo"
-  ).textContent =
-    formatViews(
-      video.views
-    ) +
+  document.getElementById("playerInfo").textContent =
+    formatViews(video.views) +
     " • " +
-    formatDate(
-      video.created_at
-    );
+    formatDate(video.created_at);
 
+  player.classList.remove("hidden");
 
-  player.classList.remove(
-    "hidden"
-  );
+  /* Start loading/playing immediately */
+  mainVideo.load();
 
+  mainVideo.play().catch(error => {
+    console.warn("Playback needs a click:", error);
+  });
 
-  await incrementViews();
-
-  await updateLikeUI();
-
-  await loadComments();
-
-
-  mainVideo.play()
-    .catch(
-      () => {}
-    );
-
+  /* Do database work AFTER starting the video */
+  incrementViews();
+  updateLikeUI();
+  loadComments();
 }
 
 
