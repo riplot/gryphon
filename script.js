@@ -1,5 +1,10 @@
+/* =========================================================
+   SUPABASE
+   ========================================================= */
+
 const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bGhzamlrdXJobHFkcXVmdnRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NDg3MTIsImV4cCI6MjEwNTIyNDcxMn0.1vgRpmh33I3Ke_CxN-RwyhTRh-s8VRrrjora0ifhWW4";
+
 
 
 
@@ -86,6 +91,8 @@ let currentVideo = null;
 
 let currentVideoLiked = false;
 
+let currentLikeCount = 0;
+
 let currentComments = [];
 
 let currentFilter = "All";
@@ -102,8 +109,7 @@ document.addEventListener(
 
 
 async function initializeApp() {
-  
-document.getElementById("searchInput").value = "";
+
   const {
     data: {
       session
@@ -390,11 +396,14 @@ function setAuthMode(
     title.textContent =
       "Create your GryphonTube account";
 
+
     submit.textContent =
       "Create Account";
 
+
     switchButton.textContent =
       "Already have an account? Sign In";
+
 
     signupFields.classList.remove(
       "hidden"
@@ -405,11 +414,14 @@ function setAuthMode(
     title.textContent =
       "Sign in to GryphonTube";
 
+
     submit.textContent =
       "Sign In";
 
+
     switchButton.textContent =
       "Create an account";
+
 
     signupFields.classList.add(
       "hidden"
@@ -421,7 +433,7 @@ function setAuthMode(
 
 
 /* =========================================================
-   AUTH SUBMIT
+   SIGN UP / SIGN IN
    ========================================================= */
 
 async function submitAuth() {
@@ -739,7 +751,6 @@ async function saveAccountProfile() {
 
   updateProfileButton();
 
-
   updateAccountIcon();
 
 
@@ -1043,7 +1054,6 @@ async function loadVideos() {
   }
 
 
-
   videos =
     merged.sort(
       (a, b) =>
@@ -1075,10 +1085,6 @@ function displayHomepage() {
 
 }
 
-
-/* =========================================================
-   FEATURED
-   ========================================================= */
 
 function displayFeatured() {
 
@@ -1133,29 +1139,19 @@ function displayFeatured() {
         <div class="featured-info">
 
           <h2>
-            ${escapeHtml(
-              video.title
-            )}
+            ${escapeHtml(video.title)}
           </h2>
 
 
           <p>
-            ${escapeHtml(
-              video.creator_name
-            )}
+            ${escapeHtml(video.creator_name)}
           </p>
 
 
           <p>
-            ${formatViews(
-              video.views
-            )}
-
+            ${formatViews(video.views)}
             •
-
-            ${formatDate(
-              video.created_at
-            )}
+            ${formatDate(video.created_at)}
           </p>
 
         </div>
@@ -1166,14 +1162,9 @@ function displayFeatured() {
 }
 
 
-/* =========================================================
-   RECENT
-   ========================================================= */
-
 function displayRecent() {
 
   renderVideoGrid(
-
     videos.slice(
       0,
       6
@@ -1182,15 +1173,10 @@ function displayRecent() {
     document.getElementById(
       "recentGrid"
     )
-
   );
 
 }
 
-
-/* =========================================================
-   FILTER
-   ========================================================= */
 
 function applyCurrentFilter() {
 
@@ -1223,20 +1209,18 @@ function applyCurrentFilter() {
 
 
   renderVideoGrid(
-
     results,
 
     document.getElementById(
       "videoGrid"
     )
-
   );
 
 }
 
 
 /* =========================================================
-   BETTER VIDEO CARDS
+   VIDEO CARDS
    ========================================================= */
 
 function renderVideoGrid(
@@ -1351,9 +1335,7 @@ function renderVideoGrid(
                 ${formatViews(
                   video.views
                 )}
-
                 •
-
                 ${formatDate(
                   video.created_at
                 )}
@@ -1377,8 +1359,6 @@ function renderVideoGrid(
         );
 
 
-      /* Get duration */
-
       preview.addEventListener(
         "loadedmetadata",
         function () {
@@ -1392,15 +1372,12 @@ function renderVideoGrid(
       );
 
 
-      /* Play preview on hover */
-
       card.addEventListener(
         "mouseenter",
         function () {
 
           preview.currentTime =
             0;
-
 
           preview.play()
             .catch(
@@ -1410,8 +1387,6 @@ function renderVideoGrid(
         }
       );
 
-
-      /* Stop preview */
 
       card.addEventListener(
         "mouseleave",
@@ -1425,8 +1400,6 @@ function renderVideoGrid(
         }
       );
 
-
-      /* Open video */
 
       card.addEventListener(
         "click",
@@ -1572,10 +1545,6 @@ async function uploadVideo(
         );
 
 
-    let databaseVideo =
-      null;
-
-
     const {
       data,
       error: metadataError
@@ -1607,12 +1576,7 @@ async function uploadVideo(
         .single();
 
 
-    if (!metadataError) {
-
-      databaseVideo =
-        data;
-
-    } else {
+    if (metadataError) {
 
       console.warn(
         "Metadata save warning:",
@@ -1625,7 +1589,7 @@ async function uploadVideo(
     const newVideo = {
 
       id:
-        databaseVideo?.id ||
+        data?.id ||
         null,
 
       storage_path:
@@ -1697,47 +1661,98 @@ async function uploadVideo(
 }
 
 
-async function openVideo(video) {
+/* =========================================================
+   OPEN VIDEO
+   ========================================================= */
 
-  currentVideo = video;
+async function openVideo(
+  video
+) {
+
+  currentVideo =
+    video;
+
 
   const player =
-    document.getElementById("player");
+    document.getElementById(
+      "player"
+    );
+
 
   const mainVideo =
-    document.getElementById("mainVideo");
+    document.getElementById(
+      "mainVideo"
+    );
 
-  mainVideo.src = video.video;
 
-  document.getElementById("playerTitle").textContent =
+  mainVideo.src =
+    video.video;
+
+
+  document.getElementById(
+    "playerTitle"
+  ).textContent =
     video.title;
 
+
   const creatorButton =
-    document.getElementById("playerCreator");
+    document.getElementById(
+      "playerCreator"
+    );
+
 
   creatorButton.textContent =
     video.creator_name;
 
-  document.getElementById("playerInfo").textContent =
-    formatViews(video.views) +
+
+  creatorButton.style.color =
+    getCreatorColor(
+      video.creator_name
+    );
+
+
+  document.getElementById(
+    "playerInfo"
+  ).textContent =
+    formatViews(
+      video.views
+    ) +
     " • " +
-    formatDate(video.created_at);
+    formatDate(
+      video.created_at
+    );
 
-  player.classList.remove("hidden");
 
-  /* Start loading/playing immediately */
+  player.classList.remove(
+    "hidden"
+  );
+
+
   mainVideo.load();
 
-  mainVideo.play().catch(error => {
-    console.warn("Playback needs a click:", error);
-  });
 
-  /* Do database work AFTER starting the video */
+  mainVideo.play()
+    .catch(
+      error =>
+        console.warn(
+          "Playback:",
+          error
+        )
+    );
+
+
   incrementViews();
+
   updateLikeUI();
+
   loadComments();
+
 }
 
+
+/* =========================================================
+   OPEN BY PATH
+   ========================================================= */
 
 function openVideoByPath(
   path
@@ -1761,6 +1776,10 @@ function openVideoByPath(
 
 }
 
+
+/* =========================================================
+   CLOSE PLAYER
+   ========================================================= */
 
 function closePlayer() {
 
@@ -1798,8 +1817,13 @@ function closePlayer() {
 
 async function incrementViews() {
 
-  if (!currentVideo) {
+  if (
+    !currentVideo ||
+    !currentVideo.id
+  ) {
+
     return;
+
   }
 
 
@@ -1810,35 +1834,25 @@ async function incrementViews() {
     ) + 1;
 
 
-  if (
-    currentVideo.id
-  ) {
-
-    const {
-      error
-    } =
-      await supabaseClient
-        .from("videos")
-        .update({
-
-          views:
-            currentVideo.views
-
-        })
-        .eq(
-          "id",
-          currentVideo.id
-        );
-
-
-    if (error) {
-
-      console.warn(
-        "View update failed:",
-        error.message
+  const {
+    error
+  } =
+    await supabaseClient
+      .rpc(
+        "increment_video_views",
+        {
+          target_video_id:
+            currentVideo.id
+        }
       );
 
-    }
+
+  if (error) {
+
+    console.warn(
+      "View update failed:",
+      error.message
+    );
 
   }
 
@@ -1876,8 +1890,13 @@ async function toggleLike() {
   }
 
 
-  if (!currentVideo) {
+  if (
+    !currentVideo ||
+    !currentVideo.id
+  ) {
+
     return;
+
   }
 
 
@@ -1916,20 +1935,15 @@ async function toggleLike() {
     currentVideoLiked =
       false;
 
-  } else {
 
-    if (
-      !currentVideo.id
-    ) {
-
-      alert(
-        "This video doesn't have database metadata yet."
+    currentLikeCount =
+      Math.max(
+        0,
+        currentLikeCount - 1
       );
 
-      return;
 
-    }
-
+  } else {
 
     const {
       error
@@ -1962,13 +1976,21 @@ async function toggleLike() {
     currentVideoLiked =
       true;
 
+
+    currentLikeCount +=
+      1;
+
   }
 
 
-  await updateLikeUI();
+  updateLikeButton();
 
 }
 
+
+/* =========================================================
+   LIKE UI + COUNT
+   ========================================================= */
 
 async function updateLikeUI() {
 
@@ -1985,8 +2007,16 @@ async function updateLikeUI() {
 
   if (!currentUser) {
 
-    button.textContent =
-      "🔒 Sign in to Like";
+    currentVideoLiked =
+      false;
+
+    currentLikeCount =
+      await getLikeCount(
+        currentVideo.id
+      );
+
+
+    updateLikeButton();
 
     return;
 
@@ -1995,39 +2025,92 @@ async function updateLikeUI() {
 
   if (!currentVideo.id) {
 
-    button.textContent =
-      "❤️ Like";
+    currentVideoLiked =
+      false;
+
+    currentLikeCount =
+      0;
+
+    updateLikeButton();
 
     return;
 
   }
 
 
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("video_likes")
-      .select(
-        "visitor_id"
-      )
-      .eq(
-        "video_id",
+  const [
+    likeStatus,
+    likeCount
+  ] =
+    await Promise.all([
+
+      supabaseClient
+        .from("video_likes")
+        .select(
+          "visitor_id"
+        )
+        .eq(
+          "video_id",
+          currentVideo.id
+        )
+        .eq(
+          "visitor_id",
+          currentUser.id
+        )
+        .maybeSingle(),
+
+      getLikeCount(
         currentVideo.id
       )
-      .eq(
-        "visitor_id",
-        currentUser.id
-      )
-      .maybeSingle();
+
+    ]);
 
 
-  if (error) {
+  if (
+    likeStatus.error
+  ) {
 
     console.warn(
-      "Like load error:",
-      error.message
+      "Like status error:",
+      likeStatus.error.message
+    );
+
+  }
+
+
+  currentVideoLiked =
+    !!likeStatus.data;
+
+
+  currentLikeCount =
+    likeCount;
+
+
+  updateLikeButton();
+
+}
+
+
+function updateLikeButton() {
+
+  const button =
+    document.getElementById(
+      "likeButton"
+    );
+
+
+  if (!button) {
+    return;
+  }
+
+
+  if (!currentUser) {
+
+    button.textContent =
+      `🔒 Sign in to Like (${currentLikeCount})`;
+
+    button.classList.remove(
+      "liked"
     );
 
     return;
@@ -2035,14 +2118,63 @@ async function updateLikeUI() {
   }
 
 
-  currentVideoLiked =
-    !!data;
-
-
   button.textContent =
     currentVideoLiked
-      ? "❤️ Liked"
-      : "❤️ Like";
+      ? `❤️ Liked (${currentLikeCount})`
+      : `❤️ Like (${currentLikeCount})`;
+
+
+  button.classList.toggle(
+    "liked",
+    currentVideoLiked
+  );
+
+}
+
+
+async function getLikeCount(
+  videoId
+) {
+
+  if (!videoId) {
+    return 0;
+  }
+
+
+  const {
+    count,
+    error
+  } =
+    await supabaseClient
+      .from("video_likes")
+      .select(
+        "*",
+        {
+          count:
+            "exact",
+          head:
+            true
+        }
+      )
+      .eq(
+        "video_id",
+        videoId
+      );
+
+
+  if (error) {
+
+    console.warn(
+      "Like count error:",
+      error.message
+    );
+
+    return 0;
+
+  }
+
+
+  return count || 0;
 
 }
 
@@ -2076,6 +2208,10 @@ async function loadComments() {
   }
 
 
+  list.innerHTML =
+    "<p>Loading comments...</p>";
+
+
   const {
     data,
     error
@@ -2090,7 +2226,8 @@ async function loadComments() {
       .order(
         "created_at",
         {
-          ascending: false
+          ascending:
+            false
         }
       );
 
@@ -2102,15 +2239,20 @@ async function loadComments() {
       error.message
     );
 
+
     currentComments =
       [];
 
-  } else {
 
-    currentComments =
-      data || [];
+    renderComments();
+
+    return;
 
   }
+
+
+  currentComments =
+    data || [];
 
 
   renderComments();
@@ -2207,8 +2349,13 @@ async function addComment() {
   }
 
 
-  if (!currentVideo) {
+  if (
+    !currentVideo ||
+    !currentVideo.id
+  ) {
+
     return;
+
   }
 
 
@@ -2224,19 +2371,6 @@ async function addComment() {
 
   if (!text) {
     return;
-  }
-
-
-  if (
-    !currentVideo.id
-  ) {
-
-    alert(
-      "This video doesn't have database metadata yet."
-    );
-
-    return;
-
   }
 
 
@@ -2264,10 +2398,17 @@ async function addComment() {
 
   if (error) {
 
+    console.error(
+      "Comment error:",
+      error
+    );
+
+
     alert(
       "Comment failed: " +
       error.message
     );
+
 
     return;
 
@@ -2276,6 +2417,7 @@ async function addComment() {
 
   input.value =
     "";
+
 
   await loadComments();
 
@@ -2683,9 +2825,11 @@ function searchVideos() {
 
   window.scrollTo({
 
-    top: 0,
+    top:
+      0,
 
-    behavior: "smooth"
+    behavior:
+      "smooth"
 
   });
 
