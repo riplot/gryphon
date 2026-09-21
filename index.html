@@ -50,15 +50,13 @@
 
     <div class="search">
 
-     <input
+    <input
   id="searchInput"
-  name="gryphontube-search"
   type="search"
   placeholder="Search GryphonTube"
-  autocomplete="off"
-  autocorrect="off"
-  autocapitalize="off"
-  spellcheck="false"
+  autocomplete="new-password"
+  readonly
+  onfocus="this.removeAttribute('readonly')"
   onkeydown="if(event.key==='Enter') searchVideos()"
 >
 
