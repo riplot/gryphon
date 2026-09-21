@@ -19,7 +19,9 @@ body.dark-mode {
 }
 
 
-/* ==================== TOP BAR ==================== */
+/* =========================================================
+   TOP BAR
+   ========================================================= */
 
 .topbar {
   height: 64px;
@@ -28,12 +30,14 @@ body.dark-mode {
 
   display: flex;
   align-items: center;
+
   gap: 20px;
 
   padding: 0 20px;
 
   position: sticky;
   top: 0;
+
   z-index: 1000;
 }
 
@@ -45,12 +49,15 @@ body.dark-mode {
 .logo {
   font-size: 22px;
   font-weight: 800;
+
   cursor: pointer;
+
   white-space: nowrap;
 }
 
 .logo-icon {
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
 
@@ -60,16 +67,21 @@ body.dark-mode {
   margin-right: 7px;
 
   background: #ff0000;
+
   color: white;
 
   border-radius: 7px;
+
   font-size: 15px;
 }
 
 .search {
   flex: 1;
+
   display: flex;
+
   max-width: 650px;
+
   margin: auto;
 }
 
@@ -79,6 +91,7 @@ body.dark-mode {
   height: 40px;
 
   border: 1px solid #bbb;
+
   border-right: none;
 
   border-radius: 22px 0 0 22px;
@@ -117,6 +130,7 @@ body.dark-mode {
 .top-buttons {
   display: flex;
   align-items: center;
+
   gap: 8px;
 }
 
@@ -144,17 +158,22 @@ body.dark-mode {
 
 .profile {
   background: #673ab7 !important;
+
   color: white;
+
   font-weight: bold;
 }
 
 
-/* ==================== MOBILE MENU ==================== */
+/* =========================================================
+   MOBILE MENU
+   ========================================================= */
 
 .mobile-menu {
   display: none;
 
   border: none;
+
   background: transparent;
 
   font-size: 22px;
@@ -163,7 +182,9 @@ body.dark-mode {
 }
 
 
-/* ==================== SIDEBAR ==================== */
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
 
 .sidebar {
   position: fixed;
@@ -222,13 +243,17 @@ body.dark-mode {
 
 .sidebar h3 {
   padding: 0 14px;
+
   margin: 20px 0 7px;
+
   font-size: 14px;
+
   opacity: .65;
 }
 
 .sidebar-divider {
   border-top: 1px solid #ddd;
+
   margin: 15px 8px;
 }
 
@@ -237,15 +262,20 @@ body.dark-mode {
 }
 
 
-/* ==================== MAIN CONTENT ==================== */
+/* =========================================================
+   MAIN CONTENT
+   ========================================================= */
 
 .content {
   margin-left: 220px;
+
   padding: 20px 28px 50px;
 }
 
 
-/* ==================== CATEGORY BAR ==================== */
+/* =========================================================
+   CATEGORY BAR
+   ========================================================= */
 
 .category-bar {
   display: flex;
@@ -259,6 +289,7 @@ body.dark-mode {
 
 .category-bar button {
   border: none;
+
   background: #eee;
 
   padding: 9px 17px;
@@ -268,27 +299,40 @@ body.dark-mode {
   cursor: pointer;
 
   white-space: nowrap;
+
+  transition:
+    transform .15s ease,
+    background .15s ease;
+}
+
+.category-bar button:hover {
+  transform: translateY(-1px);
 }
 
 .category-bar button:hover,
 .category-bar button.active {
   background: #111;
+
   color: white;
 }
 
 .dark-mode .category-bar button {
   background: #2c2c2c;
+
   color: white;
 }
 
 .dark-mode .category-bar button:hover,
 .dark-mode .category-bar button.active {
   background: white;
+
   color: #111;
 }
 
 
-/* ==================== SECTIONS ==================== */
+/* =========================================================
+   SECTIONS
+   ========================================================= */
 
 section {
   margin-bottom: 40px;
@@ -296,6 +340,7 @@ section {
 
 .section-header {
   display: flex;
+
   align-items: center;
   justify-content: space-between;
 
@@ -304,22 +349,30 @@ section {
 
 .section-header h1 {
   font-size: 22px;
+
   margin: 0;
 }
 
 .text-button {
   border: none;
+
   background: transparent;
+
   color: #065fd4;
+
   cursor: pointer;
+
   font-weight: bold;
 }
 
 
-/* ==================== FEATURED ==================== */
+/* =========================================================
+   FEATURED
+   ========================================================= */
 
 .featured-card {
   display: grid;
+
   grid-template-columns: 1.4fr 1fr;
 
   background: white;
@@ -330,7 +383,19 @@ section {
 
   cursor: pointer;
 
-  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  box-shadow:
+    0 4px 20px rgba(0,0,0,.08);
+
+  transition:
+    transform .2s ease,
+    box-shadow .2s ease;
+}
+
+.featured-card:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 28px rgba(0,0,0,.14);
 }
 
 .dark-mode .featured-card {
@@ -340,6 +405,7 @@ section {
 .featured-video {
   width: 100%;
   height: 310px;
+
   object-fit: cover;
 
   background: #000;
@@ -351,39 +417,63 @@ section {
 
 .featured-info h2 {
   font-size: 28px;
+
   margin-top: 0;
+
+  line-height: 1.15;
 }
 
 .featured-info p {
   opacity: .7;
+
   line-height: 1.5;
 }
 
 
-/* ==================== VIDEO GRID ==================== */
+/* =========================================================
+   VIDEO GRID
+   ========================================================= */
 
 .video-grid {
   display: grid;
 
   grid-template-columns:
-    repeat(auto-fill, minmax(250px, 1fr));
+    repeat(
+      auto-fill,
+      minmax(250px, 1fr)
+    );
 
-  gap: 24px 18px;
+  gap: 28px 18px;
 }
 
 
-/* ==================== VIDEO CARDS ==================== */
+/* =========================================================
+   VIDEO CARD
+   ========================================================= */
 
 .video-card {
   cursor: pointer;
 
   min-width: 0;
+
+  transition:
+    transform .2s ease;
 }
+
+.video-card:hover {
+  transform: translateY(-3px);
+}
+
+
+/* =========================================================
+   THUMBNAIL
+   ========================================================= */
 
 .thumbnail {
   position: relative;
 
   width: 100%;
+
   aspect-ratio: 16 / 9;
 
   background: #ddd;
@@ -391,6 +481,9 @@ section {
   border-radius: 12px;
 
   overflow: hidden;
+
+  box-shadow:
+    0 2px 8px rgba(0,0,0,.08);
 }
 
 .thumbnail video,
@@ -405,7 +498,69 @@ section {
 
 .thumbnail video {
   background: #111;
+
+  transition:
+    transform .35s ease;
 }
+
+.video-card:hover
+.thumbnail video {
+  transform: scale(1.035);
+}
+
+
+/* =========================================================
+   VIDEO HOVER PLAY ICON
+   ========================================================= */
+
+.preview-play {
+  position: absolute;
+
+  left: 50%;
+  top: 50%;
+
+  transform:
+    translate(-50%, -50%)
+    scale(.85);
+
+  width: 52px;
+  height: 52px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(0,0,0,.72);
+
+  color: white;
+
+  font-size: 20px;
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition:
+    opacity .2s ease,
+    transform .2s ease;
+}
+
+.video-card:hover
+.preview-play {
+  opacity: 1;
+
+  transform:
+    translate(-50%, -50%)
+    scale(1);
+}
+
+
+/* =========================================================
+   DURATION
+   ========================================================= */
 
 .duration {
   position: absolute;
@@ -413,55 +568,96 @@ section {
   bottom: 7px;
   right: 7px;
 
-  padding: 4px 6px;
+  padding: 4px 7px;
 
-  border-radius: 4px;
+  border-radius: 5px;
 
-  background: rgba(0,0,0,.8);
+  background: rgba(0,0,0,.85);
+
   color: white;
 
   font-size: 12px;
+
+  font-weight: bold;
 }
+
+
+/* =========================================================
+   CATEGORY BADGE
+   ========================================================= */
+
+.category-badge {
+  position: absolute;
+
+  top: 8px;
+  left: 8px;
+
+  padding: 5px 8px;
+
+  border-radius: 6px;
+
+  background: rgba(0,0,0,.7);
+
+  color: white;
+
+  font-size: 11px;
+
+  font-weight: bold;
+}
+
+
+/* =========================================================
+   VIDEO INFO
+   ========================================================= */
 
 .video-info {
   display: flex;
 
   gap: 11px;
 
-  padding-top: 10px;
+  padding-top: 11px;
 }
 
 .channel-icon {
-  flex: 0 0 38px;
+  flex: 0 0 40px;
 
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
 
   display: flex;
+
   align-items: center;
   justify-content: center;
 
   border-radius: 50%;
 
-  background: #673ab7;
   color: white;
 
   font-weight: bold;
+
+  box-shadow:
+    0 2px 5px rgba(0,0,0,.12);
 }
 
 .video-text {
   min-width: 0;
+
+  flex: 1;
 }
 
 .video-text h2 {
-  margin: 0 0 5px;
+  margin: 0 0 6px;
 
   font-size: 16px;
 
   line-height: 1.25;
 
+  font-weight: 700;
+
   white-space: nowrap;
+
   overflow: hidden;
+
   text-overflow: ellipsis;
 }
 
@@ -471,14 +667,28 @@ section {
   font-size: 13px;
 
   color: #666;
+
+  line-height: 1.3;
+}
+
+.video-text .creator-name {
+  color: #333;
+
+  font-weight: 600;
 }
 
 .dark-mode .video-text p {
   color: #aaa;
 }
 
+.dark-mode .video-text .creator-name {
+  color: #ddd;
+}
 
-/* ==================== OVERLAYS ==================== */
+
+/* =========================================================
+   OVERLAYS
+   ========================================================= */
 
 .overlay {
   position: fixed;
@@ -502,7 +712,9 @@ section {
 }
 
 
-/* ==================== PLAYER ==================== */
+/* =========================================================
+   PLAYER
+   ========================================================= */
 
 .player-window {
   width: min(1000px, 100%);
@@ -520,6 +732,7 @@ section {
 
 .dark-mode .player-window {
   background: #181818;
+
   color: white;
 }
 
@@ -527,6 +740,7 @@ section {
   display: block;
 
   width: 100%;
+
   max-height: 60vh;
 
   background: black;
@@ -542,6 +756,7 @@ section {
   height: 38px;
 
   border: none;
+
   border-radius: 50%;
 
   background: rgba(0,0,0,.7);
@@ -565,6 +780,7 @@ section {
 
 .creator-link {
   border: none;
+
   background: transparent;
 
   padding: 0;
@@ -600,16 +816,20 @@ section {
 
 .dark-mode .player-actions button {
   background: #333;
+
   color: white;
 }
 
 .player-actions button.liked {
   background: #ffdddd;
+
   color: #d00;
 }
 
 
-/* ==================== COMMENTS ==================== */
+/* =========================================================
+   COMMENTS
+   ========================================================= */
 
 .comments {
   margin-top: 30px;
@@ -625,6 +845,7 @@ section {
 
 .comment-box {
   display: flex;
+
   gap: 10px;
 }
 
@@ -642,7 +863,9 @@ section {
 
 .dark-mode .comment-box input {
   background: #222;
+
   color: white;
+
   border-color: #444;
 }
 
@@ -655,6 +878,7 @@ section {
   padding: 10px 16px;
 
   background: #111;
+
   color: white;
 
   cursor: pointer;
@@ -678,6 +902,7 @@ section {
 
 .dark-mode .secondary-button {
   color: white;
+
   border-color: #555;
 }
 
@@ -697,7 +922,9 @@ section {
 
 .comment-date {
   font-size: 12px;
+
   opacity: .5;
+
   margin-left: 7px;
 }
 
@@ -706,7 +933,9 @@ section {
 }
 
 
-/* ==================== PROFILE MODAL ==================== */
+/* =========================================================
+   PROFILE / ACCOUNT
+   ========================================================= */
 
 .modal-window {
   width: min(450px, 100%);
@@ -756,7 +985,9 @@ section {
 .dark-mode .modal-window input,
 .dark-mode .modal-window textarea {
   background: #222;
+
   color: white;
+
   border-color: #444;
 }
 
@@ -836,7 +1067,9 @@ section {
 }
 
 
-/* ==================== CHANNEL ==================== */
+/* =========================================================
+   CHANNEL
+   ========================================================= */
 
 .channel-window {
   width: min(1100px, 100%);
@@ -892,6 +1125,7 @@ section {
   color: white;
 
   font-size: 32px;
+
   font-weight: bold;
 
   flex-shrink: 0;
@@ -914,7 +1148,9 @@ section {
 }
 
 
-/* ==================== NOTIFICATION ==================== */
+/* =========================================================
+   NOTIFICATION
+   ========================================================= */
 
 .notification-box {
   position: fixed;
@@ -923,6 +1159,7 @@ section {
   right: 20px;
 
   background: #222;
+
   color: white;
 
   border-radius: 10px;
@@ -933,7 +1170,9 @@ section {
 }
 
 
-/* ==================== EMPTY ==================== */
+/* =========================================================
+   EMPTY
+   ========================================================= */
 
 .empty-state {
   grid-column: 1 / -1;
@@ -946,12 +1185,15 @@ section {
 }
 
 
-/* ==================== RESPONSIVE ==================== */
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
 
 @media (max-width: 900px) {
 
   .sidebar {
     transform: translateX(-100%);
+
     transition: transform .2s ease;
   }
 
@@ -965,6 +1207,7 @@ section {
 
   .content {
     margin-left: 0;
+
     padding: 18px;
   }
 
@@ -1005,10 +1248,7 @@ section {
     height: 34px;
   }
 
-  .top-buttons button:nth-child(2) {
-    display: none;
-  }
-
+  .top-buttons button:nth-child(2),
   .top-buttons button:nth-child(3) {
     display: none;
   }
@@ -1016,7 +1256,7 @@ section {
   .video-grid {
     grid-template-columns: 1fr 1fr;
 
-    gap: 14px 10px;
+    gap: 18px 10px;
   }
 
   .video-text h2 {
@@ -1024,9 +1264,10 @@ section {
   }
 
   .channel-icon {
-    width: 30px;
-    height: 30px;
-    flex-basis: 30px;
+    width: 32px;
+    height: 32px;
+
+    flex-basis: 32px;
   }
 
   .channel-header {
@@ -1046,62 +1287,4 @@ section {
     min-width: 0;
   }
 
-}
-/* =========================================================
-   ACCOUNT / AUTH
-   ========================================================= */
-
-.auth-window {
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.auth-window h1 {
-  margin-top: 5px;
-}
-
-.auth-status {
-  min-height: 20px;
-  color: #666;
-  line-height: 1.4;
-}
-
-.dark-mode .auth-status {
-  color: #aaa;
-}
-
-.account-email {
-  opacity: .7;
-  margin-bottom: 20px;
-}
-
-#authPassword {
-  margin-bottom: 5px;
-}
-
-.auth-window .profile-edit-icon {
-  margin-top: 5px;
-}
-
-.auth-window .primary-button {
-  margin-top: 20px;
-}
-
-#signupFields {
-  margin-top: 5px;
-}
-
-#signupFields.hidden,
-#loggedOutAccount.hidden,
-#loggedInAccount.hidden {
-  display: none !important;
-}
-
-#loggedOutAccount:not(.hidden),
-#loggedInAccount:not(.hidden) {
-  display: block;
-}
-
-.auth-window .secondary-button {
-  margin-top: 10px;
 }
