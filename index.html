@@ -50,12 +50,17 @@
 
     <div class="search">
 
-      <input
-        id="searchInput"
-        type="text"
-        placeholder="Search"
-        onkeydown="if(event.key==='Enter') searchVideos()"
-      >
+     <input
+  id="searchInput"
+  name="gryphontube-search"
+  type="search"
+  placeholder="Search GryphonTube"
+  autocomplete="off"
+  autocorrect="off"
+  autocapitalize="off"
+  spellcheck="false"
+  onkeydown="if(event.key==='Enter') searchVideos()"
+>
 
       <button onclick="searchVideos()">
         🔍
