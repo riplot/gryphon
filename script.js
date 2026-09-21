@@ -1,9 +1,6 @@
-/* =========================================================
-   SUPABASE
-   ========================================================= */
-
 const SUPABASE_URL = "https://jxlhsjikurhlqdqufvtg.supabase.co";
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp4bGhzamlrdXJobHFkcXVmdnRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk2NDg3MTIsImV4cCI6MjEwNTIyNDcxMn0.1vgRpmh33I3Ke_CxN-RwyhTRh-s8VRrrjora0ifhWW4";
+
 
 
 const supabaseClient =
@@ -33,27 +30,8 @@ function getRedirectUrl() {
 
 
 /* =========================================================
-   LOCAL / PROFILE
+   PROFILE
    ========================================================= */
-
-let visitorId =
-  localStorage.getItem(
-    "gryphontube_visitor_id"
-  );
-
-
-if (!visitorId) {
-
-  visitorId =
-    crypto.randomUUID();
-
-  localStorage.setItem(
-    "gryphontube_visitor_id",
-    visitorId
-  );
-
-}
-
 
 let creatorName =
   localStorage.getItem(
@@ -73,6 +51,29 @@ let creatorColor =
     "gryphontube_creator_color"
   ) ||
   "#673ab7";
+
+
+/* =========================================================
+   USER ID
+   ========================================================= */
+
+let visitorId =
+  localStorage.getItem(
+    "gryphontube_visitor_id"
+  );
+
+
+if (!visitorId) {
+
+  visitorId =
+    crypto.randomUUID();
+
+  localStorage.setItem(
+    "gryphontube_visitor_id",
+    visitorId
+  );
+
+}
 
 
 /* =========================================================
@@ -96,17 +97,9 @@ let currentFilter = "All";
 
 document.addEventListener(
   "DOMContentLoaded",
-  function () {
-
-    initializeApp();
-
-  }
+  initializeApp
 );
 
-
-/* =========================================================
-   INITIALIZE
-   ========================================================= */
 
 async function initializeApp() {
 
@@ -139,7 +132,6 @@ async function initializeApp() {
             session
           );
 
-
           await loadVideos();
 
 
@@ -163,7 +155,7 @@ async function initializeApp() {
 
 
 /* =========================================================
-   APPLY AUTH SESSION
+   AUTH SESSION
    ========================================================= */
 
 function applyAuthSession(
@@ -171,7 +163,8 @@ function applyAuthSession(
 ) {
 
   currentUser =
-    session?.user || null;
+    session?.user ||
+    null;
 
 
   if (currentUser) {
@@ -229,7 +222,7 @@ function applyAuthSession(
 
 
 /* =========================================================
-   ACCOUNT MODAL
+   ACCOUNT
    ========================================================= */
 
 function openAccount() {
@@ -389,39 +382,33 @@ function setAuthMode(
 
 
   if (
-    mode === "signup"
+    mode ===
+    "signup"
   ) {
 
     title.textContent =
       "Create your GryphonTube account";
 
-
     submit.textContent =
       "Create Account";
-
 
     switchButton.textContent =
       "Already have an account? Sign In";
 
-
     signupFields.classList.remove(
       "hidden"
     );
-
 
   } else {
 
     title.textContent =
       "Sign in to GryphonTube";
 
-
     submit.textContent =
       "Sign In";
 
-
     switchButton.textContent =
       "Create an account";
-
 
     signupFields.classList.add(
       "hidden"
@@ -433,7 +420,7 @@ function setAuthMode(
 
 
 /* =========================================================
-   SIGN UP / SIGN IN
+   AUTH SUBMIT
    ========================================================= */
 
 async function submitAuth() {
@@ -441,8 +428,7 @@ async function submitAuth() {
   const email =
     document.getElementById(
       "authEmail"
-    ).value
-      .trim();
+    ).value.trim();
 
 
   const password =
@@ -484,21 +470,20 @@ async function submitAuth() {
 
 
   if (
-    authMode === "signup"
+    authMode ===
+    "signup"
   ) {
 
     const channelName =
       document.getElementById(
         "authChannelName"
-      ).value
-        .trim();
+      ).value.trim();
 
 
     const bio =
       document.getElementById(
         "authBio"
-      ).value
-        .trim();
+      ).value.trim();
 
 
     if (!channelName) {
@@ -549,15 +534,8 @@ async function submitAuth() {
 
     if (error) {
 
-      console.error(
-        "SIGN UP ERROR:",
-        error
-      );
-
-
       status.textContent =
         error.message;
-
 
       return;
 
@@ -574,7 +552,7 @@ async function submitAuth() {
     } else {
 
       status.textContent =
-        "Account created. Check your email to confirm it, then sign in.";
+        "Account created. Check your email, then sign in.";
 
     }
 
@@ -598,15 +576,8 @@ async function submitAuth() {
 
     if (error) {
 
-      console.error(
-        "SIGN IN ERROR:",
-        error
-      );
-
-
       status.textContent =
         error.message;
-
 
       return;
 
@@ -673,24 +644,20 @@ async function signOut() {
 async function saveAccountProfile() {
 
   if (!currentUser) {
-
     return;
-
   }
 
 
   const name =
     document.getElementById(
       "accountChannelName"
-    ).value
-      .trim();
+    ).value.trim();
 
 
   const bio =
     document.getElementById(
       "accountBio"
-    ).value
-      .trim();
+    ).value.trim();
 
 
   if (!name) {
@@ -770,6 +737,7 @@ async function saveAccountProfile() {
 
 
   updateProfileButton();
+
 
   updateAccountIcon();
 
@@ -851,12 +819,6 @@ function updateProfileButton() {
       ? creatorColor
       : "#673ab7";
 
-
-  button.title =
-    currentUser
-      ? currentUser.email
-      : "Sign in / Create account";
-
 }
 
 
@@ -867,6 +829,8 @@ function updateProfileButton() {
 async function loadVideos() {
 
   let storageVideos = [];
+
+  let dbVideos = [];
 
 
   try {
@@ -960,7 +924,6 @@ async function loadVideos() {
 
     }
 
-
   } catch (error) {
 
     console.error(
@@ -969,9 +932,6 @@ async function loadVideos() {
     );
 
   }
-
-
-  let dbVideos = [];
 
 
   try {
@@ -991,20 +951,19 @@ async function loadVideos() {
         );
 
 
-    if (error) {
-
-      console.warn(
-        "DATABASE VIDEOS NOT AVAILABLE:",
-        error.message
-      );
-
-    } else {
+    if (!error) {
 
       dbVideos =
         data || [];
 
-    }
+    } else {
 
+      console.warn(
+        "DATABASE VIDEOS:",
+        error.message
+      );
+
+    }
 
   } catch (error) {
 
@@ -1178,6 +1137,10 @@ function displayHomepage() {
 }
 
 
+/* =========================================================
+   FEATURED
+   ========================================================= */
+
 function displayFeatured() {
 
   const container =
@@ -1222,9 +1185,11 @@ function displayFeatured() {
         <video
           class="featured-video"
           src="${escapeAttribute(video.video)}"
+          poster="${escapeAttribute(video.thumbnail)}"
           muted
           preload="metadata"
         ></video>
+
 
         <div class="featured-info">
 
@@ -1234,17 +1199,21 @@ function displayFeatured() {
             )}
           </h2>
 
+
           <p>
             ${escapeHtml(
               video.creator_name
             )}
           </p>
 
+
           <p>
             ${formatViews(
               video.views
             )}
+
             •
+
             ${formatDate(
               video.created_at
             )}
@@ -1257,6 +1226,10 @@ function displayFeatured() {
 
 }
 
+
+/* =========================================================
+   RECENT
+   ========================================================= */
 
 function displayRecent() {
 
@@ -1275,6 +1248,10 @@ function displayRecent() {
 
 }
 
+
+/* =========================================================
+   FILTER
+   ========================================================= */
 
 function applyCurrentFilter() {
 
@@ -1300,7 +1277,8 @@ function applyCurrentFilter() {
   document.getElementById(
     "videoSectionTitle"
   ).textContent =
-    currentFilter === "All"
+    currentFilter ===
+    "All"
       ? "All videos"
       : currentFilter;
 
@@ -1319,7 +1297,7 @@ function applyCurrentFilter() {
 
 
 /* =========================================================
-   VIDEO GRID
+   BETTER VIDEO CARDS
    ========================================================= */
 
 function renderVideoGrid(
@@ -1371,15 +1349,30 @@ function renderVideoGrid(
           <div class="thumbnail">
 
             <video
+              class="video-preview"
               src="${escapeAttribute(video.video)}"
+              poster="${escapeAttribute(video.thumbnail)}"
               muted
               preload="metadata"
+              playsinline
             ></video>
 
-            <span
-              class="duration"
-            >
+
+            <span class="preview-play">
+              ▶
+            </span>
+
+
+            <span class="duration">
               --
+            </span>
+
+
+            <span class="category-badge">
+              ${escapeHtml(
+                video.category ||
+                "Funny"
+              )}
             </span>
 
           </div>
@@ -1407,17 +1400,21 @@ function renderVideoGrid(
                 )}
               </h2>
 
-              <p>
+
+              <p class="creator-name">
                 ${escapeHtml(
                   video.creator_name
                 )}
               </p>
 
+
               <p>
                 ${formatViews(
                   video.views
                 )}
+
                 •
+
                 ${formatDate(
                   video.created_at
                 )}
@@ -1431,7 +1428,7 @@ function renderVideoGrid(
 
       const preview =
         card.querySelector(
-          ".thumbnail video"
+          ".video-preview"
         );
 
 
@@ -1440,6 +1437,8 @@ function renderVideoGrid(
           ".duration"
         );
 
+
+      /* Get duration */
 
       preview.addEventListener(
         "loadedmetadata",
@@ -1453,6 +1452,42 @@ function renderVideoGrid(
         }
       );
 
+
+      /* Play preview on hover */
+
+      card.addEventListener(
+        "mouseenter",
+        function () {
+
+          preview.currentTime =
+            0;
+
+
+          preview.play()
+            .catch(
+              () => {}
+            );
+
+        }
+      );
+
+
+      /* Stop preview */
+
+      card.addEventListener(
+        "mouseleave",
+        function () {
+
+          preview.pause();
+
+          preview.currentTime =
+            0;
+
+        }
+      );
+
+
+      /* Open video */
 
       card.addEventListener(
         "click",
@@ -1633,17 +1668,17 @@ async function uploadVideo(
         .single();
 
 
-    if (metadataError) {
+    if (!metadataError) {
+
+      databaseVideo =
+        data;
+
+    } else {
 
       console.warn(
         "Metadata save warning:",
         metadataError.message
       );
-
-    } else {
-
-      databaseVideo =
-        data;
 
     }
 
@@ -1865,7 +1900,8 @@ async function incrementViews() {
 
   currentVideo.views =
     Number(
-      currentVideo.views || 0
+      currentVideo.views ||
+      0
     ) + 1;
 
 
@@ -1975,10 +2011,11 @@ async function toggleLike() {
     currentVideoLiked =
       false;
 
-
   } else {
 
-    if (!currentVideo.id) {
+    if (
+      !currentVideo.id
+    ) {
 
       alert(
         "This video doesn't have database metadata yet."
@@ -2122,7 +2159,9 @@ async function loadComments() {
   }
 
 
-  if (!currentVideo.id) {
+  if (
+    !currentVideo.id
+  ) {
 
     list.innerHTML =
       "<p>No comments yet.</p>";
@@ -2158,20 +2197,15 @@ async function loadComments() {
       error.message
     );
 
-
     currentComments =
       [];
 
+  } else {
 
-    renderComments();
-
-    return;
+    currentComments =
+      data || [];
 
   }
-
-
-  currentComments =
-    data || [];
 
 
   renderComments();
@@ -2235,7 +2269,6 @@ function renderComments() {
 
           </div>
 
-
           <p>
             ${escapeHtml(
               comment.body
@@ -2289,7 +2322,9 @@ async function addComment() {
   }
 
 
-  if (!currentVideo.id) {
+  if (
+    !currentVideo.id
+  ) {
 
     alert(
       "This video doesn't have database metadata yet."
@@ -2324,11 +2359,6 @@ async function addComment() {
 
   if (error) {
 
-    console.error(
-      "Comment error:",
-      error
-    );
-
     alert(
       "Comment failed: " +
       error.message
@@ -2342,14 +2372,13 @@ async function addComment() {
   input.value =
     "";
 
-
   await loadComments();
 
 }
 
 
 /* =========================================================
-   CHANNEL
+   CHANNELS
    ========================================================= */
 
 function openOwnChannel() {
@@ -2416,7 +2445,8 @@ function openChannel(
   ).textContent =
     channelVideos.length +
     (
-      channelVideos.length === 1
+      channelVideos.length ===
+      1
         ? " video"
         : " videos"
     );
@@ -2431,11 +2461,13 @@ function openChannel(
 
 
   renderVideoGrid(
+
     channelVideos,
 
     document.getElementById(
       "channelGrid"
     )
+
   );
 
 
@@ -2564,7 +2596,7 @@ function showRecent() {
 
 
 /* =========================================================
-   LIKED
+   LIKED VIDEOS
    ========================================================= */
 
 async function showLiked() {
@@ -2582,7 +2614,8 @@ async function showLiked() {
   }
 
 
-  const likedVideos = [];
+  const likedVideos =
+    [];
 
 
   for (
@@ -2591,9 +2624,7 @@ async function showLiked() {
   ) {
 
     if (!video.id) {
-
       continue;
-
     }
 
 
@@ -2602,7 +2633,9 @@ async function showLiked() {
     } =
       await supabaseClient
         .from("video_likes")
-        .select("visitor_id")
+        .select(
+          "visitor_id"
+        )
         .eq(
           "video_id",
           video.id
@@ -2781,7 +2814,8 @@ function omega() {
 if (
   localStorage.getItem(
     "gryphontube_dark_mode"
-  ) === "1"
+  ) ===
+  "1"
 ) {
 
   document.body.classList.add(
@@ -2881,7 +2915,8 @@ function formatViews(
 
   number =
     Number(
-      number || 0
+      number ||
+      0
     );
 
 
@@ -2983,7 +3018,8 @@ function formatDate(
     return (
       minutes +
       (
-        minutes === 1
+        minutes ===
+        1
           ? " minute ago"
           : " minutes ago"
       )
@@ -3006,7 +3042,8 @@ function formatDate(
     return (
       hours +
       (
-        hours === 1
+        hours ===
+        1
           ? " hour ago"
           : " hours ago"
       )
@@ -3029,7 +3066,8 @@ function formatDate(
     return (
       days +
       (
-        days === 1
+        days ===
+        1
           ? " day ago"
           : " days ago"
       )
