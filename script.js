@@ -1042,68 +1042,6 @@ async function loadVideos() {
   }
 
 
-  for (
-    const dbVideo
-    of dbVideos
-  ) {
-
-    if (
-      usedPaths.has(
-        dbVideo.storage_path
-      )
-    ) {
-
-      continue;
-
-    }
-
-
-    const {
-      data: urlData
-    } =
-      supabaseClient.storage
-        .from("videos")
-        .getPublicUrl(
-          dbVideo.storage_path
-        );
-
-
-    merged.push({
-
-      id:
-        dbVideo.id,
-
-      storage_path:
-        dbVideo.storage_path,
-
-      title:
-        dbVideo.title,
-
-      creator_name:
-        dbVideo.creator_name,
-
-      video:
-        urlData.publicUrl,
-
-      thumbnail:
-        "gusty.jpeg",
-
-      views:
-        Number(
-          dbVideo.views
-        ) || 0,
-
-      category:
-        dbVideo.category ||
-        "Funny",
-
-      created_at:
-        dbVideo.created_at
-
-    });
-
-  }
-
 
   videos =
     merged.sort(
