@@ -102,7 +102,8 @@ document.addEventListener(
 
 
 async function initializeApp() {
-
+  
+document.getElementById("searchInput").value = "";
   const {
     data: {
       session
