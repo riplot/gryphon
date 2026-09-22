@@ -7,7 +7,6 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 
 
-
 const supabaseClient =
   window.supabase.createClient(
     SUPABASE_URL,
@@ -19,19 +18,11 @@ const supabaseClient =
    AUTH
    ========================================================= */
 
-let currentUser = null;
+let currentUser =
+  null;
 
-let authMode = "signin";
-
-
-function getRedirectUrl() {
-
-  return (
-    window.location.origin +
-    window.location.pathname
-  );
-
-}
+let authMode =
+  "signin";
 
 
 /* =========================================================
@@ -41,15 +32,14 @@ function getRedirectUrl() {
 let creatorName =
   localStorage.getItem(
     "gryphontube_creator_name"
-  ) || "You";
-
+  ) ||
+  "You";
 
 let creatorBio =
   localStorage.getItem(
     "gryphontube_creator_bio"
   ) ||
   "Welcome to my GryphonTube channel!";
-
 
 let creatorColor =
   localStorage.getItem(
@@ -59,43 +49,68 @@ let creatorColor =
 
 
 /* =========================================================
-   USER ID
-   ========================================================= */
-
-let visitorId =
-  localStorage.getItem(
-    "gryphontube_visitor_id"
-  );
-
-
-if (!visitorId) {
-
-  visitorId =
-    crypto.randomUUID();
-
-  localStorage.setItem(
-    "gryphontube_visitor_id",
-    visitorId
-  );
-
-}
-
-
-/* =========================================================
-   DATA
+   APP DATA
    ========================================================= */
 
 let videos = [];
 
-let currentVideo = null;
+let currentVideo =
+  null;
 
-let currentVideoLiked = false;
+let currentVideoLiked =
+  false;
 
-let currentLikeCount = 0;
+let currentLikeCount =
+  0;
 
-let currentComments = [];
+let currentComments =
+  [];
 
-let currentFilter = "All";
+let currentFilter =
+  "All";
+
+
+/* =========================================================
+   SUBSCRIPTIONS
+   ========================================================= */
+
+let currentChannelCreatorId =
+  null;
+
+let currentChannelCreatorName =
+  null;
+
+
+/* =========================================================
+   LIVE
+   ========================================================= */
+
+let activeLiveSession =
+  null;
+
+let liveRole =
+  null;
+
+let liveChannel =
+  null;
+
+let localLiveStream =
+  null;
+
+let liveViewerIds =
+  new Set();
+
+let livePeerConnections =
+  new Map();
+
+let liveViewerPeer =
+  null;
+
+let liveBroadcasterId =
+  null;
+
+let liveParticipantId =
+  null;
 
 
 /* =========================================================
@@ -109,6 +124,16 @@ document.addEventListener(
 
 
 async function initializeApp() {
+
+  const search =
+    document.getElementById(
+      "searchInput"
+    );
+
+  if (search) {
+    search.value = "";
+  }
+
 
   const {
     data: {
@@ -125,6 +150,8 @@ async function initializeApp() {
 
   await loadVideos();
 
+  await loadLiveSessions();
+
 
   supabaseClient.auth.onAuthStateChange(
     function (
@@ -140,6 +167,8 @@ async function initializeApp() {
           );
 
           await loadVideos();
+
+          await loadLiveSessions();
 
 
           if (
@@ -175,10 +204,6 @@ function applyAuthSession(
 
 
   if (currentUser) {
-
-    visitorId =
-      currentUser.id;
-
 
     const metadata =
       currentUser.user_metadata ||
@@ -334,7 +359,8 @@ function showLoggedInAccount() {
 function switchAuthMode() {
 
   authMode =
-    authMode === "signin"
+    authMode ===
+    "signin"
       ? "signup"
       : "signin";
 
@@ -467,7 +493,8 @@ async function submitAuth() {
 
 
   if (
-    password.length < 6
+    password.length <
+    6
   ) {
 
     status.textContent =
@@ -515,16 +542,15 @@ async function submitAuth() {
     } =
       await supabaseClient.auth.signUp({
 
-        email:
-          email,
+        email,
 
-        password:
-          password,
+        password,
 
         options: {
 
           emailRedirectTo:
-            getRedirectUrl(),
+            window.location.origin +
+            window.location.pathname,
 
           data: {
 
@@ -555,9 +581,7 @@ async function submitAuth() {
     }
 
 
-    if (
-      data.session
-    ) {
+    if (data.session) {
 
       status.textContent =
         "Account created!";
@@ -578,11 +602,9 @@ async function submitAuth() {
     } =
       await supabaseClient.auth.signInWithPassword({
 
-        email:
-          email,
+        email,
 
-        password:
-          password
+        password
 
       });
 
@@ -597,9 +619,7 @@ async function submitAuth() {
     }
 
 
-    if (
-      data.user
-    ) {
+    if (data.user) {
 
       status.textContent =
         "Signed in!";
@@ -617,35 +637,16 @@ async function submitAuth() {
 
 async function signOut() {
 
-  const {
-    error
-  } =
-    await supabaseClient.auth.signOut();
-
-
-  if (error) {
-
-    alert(
-      "Sign out failed: " +
-      error.message
-    );
-
-    return;
-
-  }
-
+  await supabaseClient.auth.signOut();
 
   currentUser =
     null;
 
-
-  visitorId =
-    crypto.randomUUID();
-
-
   updateProfileButton();
 
   closeAccount();
+
+  displayHomepage();
 
 }
 
@@ -731,27 +732,25 @@ async function saveAccountProfile() {
     data.user.user_metadata.color;
 
 
-  localStorage.setItem(
-    "gryphontube_creator_name",
-    creatorName
-  );
-
-
-  localStorage.setItem(
-    "gryphontube_creator_bio",
-    creatorBio
-  );
-
-
-  localStorage.setItem(
-    "gryphontube_creator_color",
-    creatorColor
-  );
+  await supabaseClient
+    .from("videos")
+    .update({
+      creator_name:
+        creatorName
+    })
+    .eq(
+      "creator_id",
+      currentUser.id
+    );
 
 
   updateProfileButton();
 
   updateAccountIcon();
+
+  await loadVideos();
+
+  closeAccount();
 
 
   alert(
@@ -909,6 +908,9 @@ async function loadVideos() {
                     ""
                   ),
 
+                creator_id:
+                  null,
+
                 creator_name:
                   "You",
 
@@ -958,7 +960,8 @@ async function loadVideos() {
         .order(
           "created_at",
           {
-            ascending: false
+            ascending:
+              false
           }
         );
 
@@ -967,13 +970,6 @@ async function loadVideos() {
 
       dbVideos =
         data || [];
-
-    } else {
-
-      console.warn(
-        "DATABASE VIDEOS:",
-        error.message
-      );
 
     }
 
@@ -988,9 +984,6 @@ async function loadVideos() {
 
 
   const merged = [];
-
-  const usedPaths =
-    new Set();
 
 
   for (
@@ -1015,6 +1008,10 @@ async function loadVideos() {
         id:
           metadata.id,
 
+        creator_id:
+          metadata.creator_id ||
+          null,
+
         title:
           metadata.title ||
           storageVideo.title,
@@ -1030,7 +1027,8 @@ async function loadVideos() {
         views:
           Number(
             metadata.views
-          ) || 0,
+          ) ||
+          0,
 
         created_at:
           metadata.created_at ||
@@ -1046,17 +1044,12 @@ async function loadVideos() {
 
     }
 
-
-    usedPaths.add(
-      storageVideo.storage_path
-    );
-
   }
 
 
   videos =
     merged.sort(
-      (a, b) =>
+      (a,b) =>
         new Date(
           b.created_at
         ) -
@@ -1099,15 +1092,8 @@ function displayFeatured() {
     container.innerHTML =
       `
         <div class="empty-state">
-
-          <h2>
-            No videos yet
-          </h2>
-
-          <p>
-            Sign in and upload your first video!
-          </p>
-
+          <h2>No videos yet</h2>
+          <p>Upload your first video!</p>
         </div>
       `;
 
@@ -1142,11 +1128,9 @@ function displayFeatured() {
             ${escapeHtml(video.title)}
           </h2>
 
-
           <p>
             ${escapeHtml(video.creator_name)}
           </p>
-
 
           <p>
             ${formatViews(video.views)}
@@ -1165,6 +1149,7 @@ function displayFeatured() {
 function displayRecent() {
 
   renderVideoGrid(
+
     videos.slice(
       0,
       6
@@ -1173,6 +1158,7 @@ function displayRecent() {
     document.getElementById(
       "recentGrid"
     )
+
   );
 
 }
@@ -1209,11 +1195,13 @@ function applyCurrentFilter() {
 
 
   renderVideoGrid(
+
     results,
 
     document.getElementById(
       "videoGrid"
     )
+
   );
 
 }
@@ -1237,15 +1225,8 @@ function renderVideoGrid(
     grid.innerHTML =
       `
         <div class="empty-state">
-
-          <h2>
-            No videos found
-          </h2>
-
-          <p>
-            Upload a video or try another category.
-          </p>
-
+          <h2>No videos found</h2>
+          <p>Try another category.</p>
         </div>
       `;
 
@@ -1280,16 +1261,13 @@ function renderVideoGrid(
               playsinline
             ></video>
 
-
             <span class="preview-play">
               ▶
             </span>
 
-
             <span class="duration">
               --
             </span>
-
 
             <span class="category-badge">
               ${escapeHtml(
@@ -1323,13 +1301,11 @@ function renderVideoGrid(
                 )}
               </h2>
 
-
               <p class="creator-name">
                 ${escapeHtml(
                   video.creator_name
                 )}
               </p>
-
 
               <p>
                 ${formatViews(
@@ -1437,7 +1413,7 @@ async function uploadVideo(
       "";
 
     alert(
-      "You need an account to upload a video."
+      "You need an account to upload."
     );
 
     openAccount();
@@ -1463,7 +1439,7 @@ async function uploadVideo(
   ) {
 
     alert(
-      "Please select a video file."
+      "Please select a video."
     );
 
     event.target.value =
@@ -1472,12 +1448,6 @@ async function uploadVideo(
     return;
 
   }
-
-
-  console.log(
-    "Uploading:",
-    file.name
-  );
 
 
   const safeName =
@@ -1492,7 +1462,7 @@ async function uploadVideo(
     "-" +
     Math.random()
       .toString(36)
-      .slice(2, 8) +
+      .slice(2,8) +
     "-" +
     safeName;
 
@@ -1522,17 +1492,9 @@ async function uploadVideo(
         error.message
       );
 
-      event.target.value =
-        "";
-
       return;
 
     }
-
-
-    console.log(
-      "UPLOAD SUCCESS!"
-    );
 
 
     const {
@@ -1562,6 +1524,9 @@ async function uploadVideo(
               ""
             ),
 
+          creator_id:
+            currentUser.id,
+
           creator_name:
             creatorName,
 
@@ -1579,7 +1544,7 @@ async function uploadVideo(
     if (metadataError) {
 
       console.warn(
-        "Metadata save warning:",
+        "Metadata warning:",
         metadataError.message
       );
 
@@ -1600,6 +1565,9 @@ async function uploadVideo(
           /\.[^/.]+$/,
           ""
         ),
+
+      creator_id:
+        currentUser.id,
 
       creator_name:
         creatorName,
@@ -1695,20 +1663,10 @@ async function openVideo(
     video.title;
 
 
-  const creatorButton =
-    document.getElementById(
-      "playerCreator"
-    );
-
-
-  creatorButton.textContent =
+  document.getElementById(
+    "playerCreator"
+  ).textContent =
     video.creator_name;
-
-
-  creatorButton.style.color =
-    getCreatorColor(
-      video.creator_name
-    );
 
 
   document.getElementById(
@@ -1733,53 +1691,24 @@ async function openVideo(
 
   mainVideo.play()
     .catch(
-      error =>
-        console.warn(
-          "Playback:",
-          error
-        )
+      () => {}
     );
 
 
-  incrementViews();
+  displayRelatedVideos();
 
   updateLikeUI();
+
+  updateCurrentSubscribeUI();
+
+  updateSaveButton();
+
+  incrementViews();
 
   loadComments();
 
 }
 
-
-/* =========================================================
-   OPEN BY PATH
-   ========================================================= */
-
-function openVideoByPath(
-  path
-) {
-
-  const video =
-    videos.find(
-      item =>
-        item.storage_path ===
-        path
-    );
-
-
-  if (video) {
-
-    openVideo(
-      video
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   CLOSE PLAYER
-   ========================================================= */
 
 function closePlayer() {
 
@@ -1807,6 +1736,160 @@ function closePlayer() {
 
   currentVideo =
     null;
+
+}
+
+
+/* =========================================================
+   RELATED / UP NEXT
+   ========================================================= */
+
+function displayRelatedVideos() {
+
+  const grid =
+    document.getElementById(
+      "relatedGrid"
+    );
+
+
+  grid.innerHTML =
+    "";
+
+
+  if (!currentVideo) {
+    return;
+  }
+
+
+  const related =
+    videos
+      .filter(
+        video =>
+          video.storage_path !==
+          currentVideo.storage_path
+      )
+      .sort(
+        (a,b) => {
+
+          let aScore =
+            0;
+
+          let bScore =
+            0;
+
+
+          if (
+            a.category ===
+            currentVideo.category
+          ) {
+            aScore += 5;
+          }
+
+
+          if (
+            b.category ===
+            currentVideo.category
+          ) {
+            bScore += 5;
+          }
+
+
+          if (
+            a.creator_id &&
+            a.creator_id ===
+            currentVideo.creator_id
+          ) {
+            aScore += 4;
+          }
+
+
+          if (
+            b.creator_id &&
+            b.creator_id ===
+            currentVideo.creator_id
+          ) {
+            bScore += 4;
+          }
+
+
+          return bScore - aScore;
+
+        }
+      )
+      .slice(
+        0,
+        10
+      );
+
+
+  related.forEach(
+    video => {
+
+      const item =
+        document.createElement(
+          "article"
+        );
+
+
+      item.className =
+        "related-card";
+
+
+      item.innerHTML =
+        `
+          <div class="related-thumb">
+
+            <video
+              src="${escapeAttribute(video.video)}"
+              muted
+              preload="metadata"
+            ></video>
+
+          </div>
+
+
+          <div class="related-info">
+
+            <h3>
+              ${escapeHtml(
+                video.title
+              )}
+            </h3>
+
+            <p>
+              ${escapeHtml(
+                video.creator_name
+              )}
+            </p>
+
+            <p>
+              ${formatViews(
+                video.views
+              )}
+            </p>
+
+          </div>
+        `;
+
+
+      item.addEventListener(
+        "click",
+        function () {
+
+          openVideo(
+            video
+          );
+
+        }
+      );
+
+
+      grid.appendChild(
+        item
+      );
+
+    }
+  );
 
 }
 
@@ -1850,7 +1933,7 @@ async function incrementViews() {
   if (error) {
 
     console.warn(
-      "View update failed:",
+      "View update:",
       error.message
     );
 
@@ -1923,24 +2006,12 @@ async function toggleLike() {
     if (error) {
 
       console.error(
-        "Unlike error:",
         error
       );
 
       return;
 
     }
-
-
-    currentVideoLiked =
-      false;
-
-
-    currentLikeCount =
-      Math.max(
-        0,
-        currentLikeCount - 1
-      );
 
 
   } else {
@@ -1964,7 +2035,6 @@ async function toggleLike() {
     if (error) {
 
       console.error(
-        "Like error:",
         error
       );
 
@@ -1972,27 +2042,20 @@ async function toggleLike() {
 
     }
 
-
-    currentVideoLiked =
-      true;
-
-
-    currentLikeCount +=
-      1;
-
   }
 
 
-  updateLikeButton();
+  await updateLikeUI();
 
 }
 
 
-/* =========================================================
-   LIKE UI + COUNT
-   ========================================================= */
-
 async function updateLikeUI() {
+
+  if (!currentVideo) {
+    return;
+  }
+
 
   const button =
     document.getElementById(
@@ -2000,38 +2063,13 @@ async function updateLikeUI() {
     );
 
 
-  if (!currentVideo) {
-    return;
-  }
+  if (
+    !currentUser ||
+    !currentVideo.id
+  ) {
 
-
-  if (!currentUser) {
-
-    currentVideoLiked =
-      false;
-
-    currentLikeCount =
-      await getLikeCount(
-        currentVideo.id
-      );
-
-
-    updateLikeButton();
-
-    return;
-
-  }
-
-
-  if (!currentVideo.id) {
-
-    currentVideoLiked =
-      false;
-
-    currentLikeCount =
-      0;
-
-    updateLikeButton();
+    button.textContent =
+      "🔒 Sign in to Like";
 
     return;
 
@@ -2039,8 +2077,8 @@ async function updateLikeUI() {
 
 
   const [
-    likeStatus,
-    likeCount
+    mine,
+    count
   ] =
     await Promise.all([
 
@@ -2066,62 +2104,18 @@ async function updateLikeUI() {
     ]);
 
 
-  if (
-    likeStatus.error
-  ) {
-
-    console.warn(
-      "Like status error:",
-      likeStatus.error.message
-    );
-
-  }
-
-
   currentVideoLiked =
-    !!likeStatus.data;
+    !!mine.data;
 
 
   currentLikeCount =
-    likeCount;
-
-
-  updateLikeButton();
-
-}
-
-
-function updateLikeButton() {
-
-  const button =
-    document.getElementById(
-      "likeButton"
-    );
-
-
-  if (!button) {
-    return;
-  }
-
-
-  if (!currentUser) {
-
-    button.textContent =
-      `🔒 Sign in to Like (${currentLikeCount})`;
-
-    button.classList.remove(
-      "liked"
-    );
-
-    return;
-
-  }
+    count;
 
 
   button.textContent =
     currentVideoLiked
-      ? `❤️ Liked (${currentLikeCount})`
-      : `❤️ Like (${currentLikeCount})`;
+      ? `❤️ Liked (${count})`
+      : `❤️ Like (${count})`;
 
 
   button.classList.toggle(
@@ -2136,14 +2130,8 @@ async function getLikeCount(
   videoId
 ) {
 
-  if (!videoId) {
-    return 0;
-  }
-
-
   const {
-    count,
-    error
+    count
   } =
     await supabaseClient
       .from("video_likes")
@@ -2162,184 +2150,40 @@ async function getLikeCount(
       );
 
 
-  if (error) {
-
-    console.warn(
-      "Like count error:",
-      error.message
-    );
-
-    return 0;
-
-  }
-
-
-  return count || 0;
+  return count ||
+    0;
 
 }
 
 
 /* =========================================================
-   COMMENTS
+   SUBSCRIPTIONS
    ========================================================= */
 
-async function loadComments() {
-
-  const list =
-    document.getElementById(
-      "commentList"
-    );
-
+async function toggleCurrentSubscription() {
 
   if (!currentVideo) {
     return;
   }
 
 
-  if (
-    !currentVideo.id
-  ) {
-
-    list.innerHTML =
-      "<p>No comments yet.</p>";
-
-    return;
-
-  }
-
-
-  list.innerHTML =
-    "<p>Loading comments...</p>";
-
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from("video_comments")
-      .select("*")
-      .eq(
-        "video_id",
-        currentVideo.id
-      )
-      .order(
-        "created_at",
-        {
-          ascending:
-            false
-        }
-      );
-
-
-  if (error) {
-
-    console.warn(
-      "Comments load error:",
-      error.message
-    );
-
-
-    currentComments =
-      [];
-
-
-    renderComments();
-
-    return;
-
-  }
-
-
-  currentComments =
-    data || [];
-
-
-  renderComments();
-
-}
-
-
-function renderComments() {
-
-  const list =
-    document.getElementById(
-      "commentList"
-    );
-
-
-  list.innerHTML =
-    "";
-
-
-  if (
-    !currentComments.length
-  ) {
-
-    list.innerHTML =
-      "<p>No comments yet. Be the first!</p>";
-
-    return;
-
-  }
-
-
-  currentComments.forEach(
-    comment => {
-
-      const div =
-        document.createElement(
-          "div"
-        );
-
-
-      div.className =
-        "comment";
-
-
-      div.innerHTML =
-        `
-          <div>
-
-            <span class="comment-name">
-              ${escapeHtml(
-                comment.creator_name ||
-                "User"
-              )}
-            </span>
-
-            <span class="comment-date">
-              ${formatDate(
-                comment.created_at
-              )}
-            </span>
-
-          </div>
-
-          <p>
-            ${escapeHtml(
-              comment.body
-            )}
-          </p>
-        `;
-
-
-      list.appendChild(
-        div
-      );
-
-    }
+  await toggleSubscription(
+    currentVideo.creator_id,
+    currentVideo.creator_name
   );
 
 }
 
 
-async function addComment() {
+async function toggleSubscription(
+  creatorId,
+  creatorNameValue
+) {
 
   if (!currentUser) {
 
     alert(
-      "Sign in to comment."
+      "Sign in to subscribe."
     );
 
     openAccount();
@@ -2349,9 +2193,20 @@ async function addComment() {
   }
 
 
+  if (!creatorId) {
+
+    alert(
+      "This channel was created before channel accounts were added."
+    );
+
+    return;
+
+  }
+
+
   if (
-    !currentVideo ||
-    !currentVideo.id
+    creatorId ===
+    currentUser.id
   ) {
 
     return;
@@ -2359,73 +2214,257 @@ async function addComment() {
   }
 
 
-  const input =
+  const {
+    data: existing
+  } =
+    await supabaseClient
+      .from(
+        "channel_subscriptions"
+      )
+      .select(
+        "creator_id"
+      )
+      .eq(
+        "subscriber_id",
+        currentUser.id
+      )
+      .eq(
+        "creator_id",
+        creatorId
+      )
+      .maybeSingle();
+
+
+  if (existing) {
+
+    await supabaseClient
+      .from(
+        "channel_subscriptions"
+      )
+      .delete()
+      .eq(
+        "subscriber_id",
+        currentUser.id
+      )
+      .eq(
+        "creator_id",
+        creatorId
+      );
+
+  } else {
+
+    await supabaseClient
+      .from(
+        "channel_subscriptions"
+      )
+      .insert({
+
+        subscriber_id:
+          currentUser.id,
+
+        creator_id:
+          creatorId,
+
+        creator_name:
+          creatorNameValue
+
+      });
+
+  }
+
+
+  await updateCurrentSubscribeUI();
+
+  await loadLiveSessions();
+
+}
+
+
+async function updateCurrentSubscribeUI() {
+
+  if (!currentVideo) {
+    return;
+  }
+
+
+  updateSubscribeUI(
+    "subscribeButton",
+    "playerSubscriberCount",
+    currentVideo.creator_id,
+    currentVideo.creator_name
+  );
+
+}
+
+
+async function updateSubscribeUI(
+  buttonId,
+  countId,
+  creatorId,
+  creatorNameValue
+) {
+
+  const button =
     document.getElementById(
-      "commentInput"
+      buttonId
     );
 
 
-  const text =
-    input.value.trim();
+  const countElement =
+    document.getElementById(
+      countId
+    );
 
 
-  if (!text) {
+  if (!button) {
     return;
+  }
+
+
+  if (!creatorId) {
+
+    button.textContent =
+      "Subscribe unavailable";
+
+    button.disabled =
+      true;
+
+    return;
+
+  }
+
+
+  if (
+    currentUser &&
+    creatorId ===
+    currentUser.id
+  ) {
+
+    button.textContent =
+      "Your Channel";
+
+    button.disabled =
+      true;
+
+  } else if (!currentUser) {
+
+    button.textContent =
+      "🔒 Sign in to Subscribe";
+
+    button.disabled =
+      false;
+
+  } else {
+
+    const {
+      data
+    } =
+      await supabaseClient
+        .from(
+          "channel_subscriptions"
+        )
+        .select(
+          "creator_id"
+        )
+        .eq(
+          "subscriber_id",
+          currentUser.id
+        )
+        .eq(
+          "creator_id",
+          creatorId
+        )
+        .maybeSingle();
+
+
+    const subscribed =
+      !!data;
+
+
+    button.textContent =
+      subscribed
+        ? "✓ Subscribed"
+        : "Subscribe";
+
+
+    button.classList.toggle(
+      "subscribed",
+      subscribed
+    );
+
+
+    button.disabled =
+      false;
+
+  }
+
+
+  const count =
+    await getSubscriberCount(
+      creatorId
+    );
+
+
+  if (countElement) {
+
+    countElement.textContent =
+      count +
+      (
+        count === 1
+          ? " subscriber"
+          : " subscribers"
+      );
+
+  }
+
+}
+
+
+async function getSubscriberCount(
+  creatorId
+) {
+
+  if (!creatorId) {
+    return 0;
   }
 
 
   const {
+    data,
     error
   } =
     await supabaseClient
-      .from("video_comments")
-      .insert({
-
-        video_id:
-          currentVideo.id,
-
-        visitor_id:
-          currentUser.id,
-
-        creator_name:
-          creatorName,
-
-        body:
-          text
-
-      });
+      .rpc(
+        "get_subscriber_count",
+        {
+          target_creator_id:
+            creatorId
+        }
+      );
 
 
   if (error) {
 
-    console.error(
-      "Comment error:",
-      error
-    );
-
-
-    alert(
-      "Comment failed: " +
+    console.warn(
+      "Subscriber count:",
       error.message
     );
 
-
-    return;
+    return 0;
 
   }
 
 
-  input.value =
-    "";
-
-
-  await loadComments();
+  return Number(
+    data ||
+    0
+  );
 
 }
 
 
 /* =========================================================
-   CHANNELS
+   CHANNEL
    ========================================================= */
 
 function openOwnChannel() {
@@ -2451,7 +2490,7 @@ function openSelectedCreatorChannel() {
 }
 
 
-function openChannel(
+async function openChannel(
   name
 ) {
 
@@ -2463,27 +2502,46 @@ function openChannel(
     );
 
 
+  currentChannelCreatorId =
+    channelVideos[0]?.creator_id ||
+    (
+      name ===
+      creatorName &&
+      currentUser
+        ? currentUser.id
+        : null
+    );
+
+
+  currentChannelCreatorName =
+    name;
+
+
   document.getElementById(
     "channelName"
   ).textContent =
     name;
 
 
-  const icon =
-    document.getElementById(
-      "channelIcon"
-    );
-
-
-  icon.textContent =
+  document.getElementById(
+    "channelIcon"
+  ).textContent =
     getInitial(
       name
     );
 
 
-  icon.style.background =
+  document.getElementById(
+    "channelIcon"
+  ).style.background =
     getCreatorColor(
       name
+    );
+
+
+  const subscriberCount =
+    await getSubscriberCount(
+      currentChannelCreatorId
     );
 
 
@@ -2496,6 +2554,14 @@ function openChannel(
       1
         ? " video"
         : " videos"
+    ) +
+    " • " +
+    subscriberCount +
+    (
+      subscriberCount ===
+      1
+        ? " subscriber"
+        : " subscribers"
     );
 
 
@@ -2507,14 +2573,19 @@ function openChannel(
     );
 
 
+  await updateSubscribeUI(
+    "channelSubscribeButton",
+    null,
+    currentChannelCreatorId,
+    name
+  );
+
+
   renderVideoGrid(
-
     channelVideos,
-
     document.getElementById(
       "channelGrid"
     )
-
   );
 
 
@@ -2522,6 +2593,21 @@ function openChannel(
     "channelModal"
   ).classList.remove(
     "hidden"
+  );
+
+}
+
+
+async function toggleChannelSubscription() {
+
+  await toggleSubscription(
+    currentChannelCreatorId,
+    currentChannelCreatorName
+  );
+
+
+  await openChannel(
+    currentChannelCreatorName
   );
 
 }
@@ -2557,101 +2643,16 @@ function getChannelBio(
 }
 
 
-function getCreatorColor(
-  name
-) {
-
-  if (
-    name ===
-    creatorName
-  ) {
-
-    return creatorColor;
-
-  }
-
-
-  return "#673ab7";
-
-}
-
-
 /* =========================================================
-   HOME
+   SUBSCRIPTIONS PAGE
    ========================================================= */
 
-function showAll() {
-
-  currentFilter =
-    "All";
-
-
-  document
-    .querySelectorAll(
-      ".category-bar button"
-    )
-    .forEach(
-      button =>
-        button.classList.remove(
-          "active"
-        )
-    );
-
-
-  const allButton =
-    document.querySelector(
-      ".category-bar button"
-    );
-
-
-  if (allButton) {
-
-    allButton.classList.add(
-      "active"
-    );
-
-  }
-
-
-  displayHomepage();
-
-}
-
-
-function showRecent() {
-
-  document.getElementById(
-    "videoSectionTitle"
-  ).textContent =
-    "Recently uploaded";
-
-
-  renderVideoGrid(
-
-    videos.slice(
-      0,
-      20
-    ),
-
-    document.getElementById(
-      "videoGrid"
-    )
-
-  );
-
-}
-
-
-/* =========================================================
-   LIKED VIDEOS
-   ========================================================= */
-
-async function showLiked() {
+async function showSubscriptions() {
 
   if (!currentUser) {
 
     alert(
-      "Sign in to see your liked videos."
+      "Sign in to see your subscriptions."
     );
 
     openAccount();
@@ -2661,63 +2662,72 @@ async function showLiked() {
   }
 
 
-  const likedVideos =
-    [];
-
-
-  for (
-    const video
-    of videos
-  ) {
-
-    if (!video.id) {
-      continue;
-    }
-
-
-    const {
-      data
-    } =
-      await supabaseClient
-        .from("video_likes")
-        .select(
-          "visitor_id"
-        )
-        .eq(
-          "video_id",
-          video.id
-        )
-        .eq(
-          "visitor_id",
-          currentUser.id
-        )
-        .maybeSingle();
-
-
-    if (data) {
-
-      likedVideos.push(
-        video
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from(
+        "channel_subscriptions"
+      )
+      .select(
+        "creator_id"
+      )
+      .eq(
+        "subscriber_id",
+        currentUser.id
       );
 
-    }
+
+  if (error) {
+
+    console.error(
+      error
+    );
+
+    return;
 
   }
+
+
+  const creatorIds =
+    (data || [])
+      .map(
+        row =>
+          row.creator_id
+      );
+
+
+  const subscribedVideos =
+    videos.filter(
+      video =>
+        creatorIds.includes(
+          video.creator_id
+        )
+    );
 
 
   document.getElementById(
     "videoSectionTitle"
   ).textContent =
-    "Liked videos";
+    "Subscriptions";
 
 
   renderVideoGrid(
-
-    likedVideos,
-
+    subscribedVideos,
     document.getElementById(
       "videoGrid"
     )
+  );
+
+
+  window.scrollTo({
+
+    top:
+      0,
+
+    behavior:
+      "smooth"
 
   );
 
@@ -2725,7 +2735,186 @@ async function showLiked() {
 
 
 /* =========================================================
-   CATEGORY
+   WATCH LATER
+   ========================================================= */
+
+function getWatchLaterKey() {
+
+  return (
+    "gryphontube_watch_later_" +
+    (
+      currentUser
+        ? currentUser.id
+        : "guest"
+    )
+  );
+
+}
+
+
+function getWatchLater() {
+
+  try {
+
+    return JSON.parse(
+      localStorage.getItem(
+        getWatchLaterKey()
+      ) ||
+      "[]"
+    );
+
+  } catch {
+
+    return [];
+
+  }
+
+}
+
+
+function isSavedForLater(
+  path
+) {
+
+  return getWatchLater()
+    .includes(
+      path
+    );
+
+}
+
+
+function toggleWatchLater() {
+
+  if (!currentVideo) {
+    return;
+  }
+
+
+  const saved =
+    getWatchLater();
+
+
+  if (
+    saved.includes(
+      currentVideo.storage_path
+    )
+  ) {
+
+    const updated =
+      saved.filter(
+        path =>
+          path !==
+          currentVideo.storage_path
+      );
+
+
+    localStorage.setItem(
+      getWatchLaterKey(),
+      JSON.stringify(
+        updated
+      )
+    );
+
+  } else {
+
+    saved.push(
+      currentVideo.storage_path
+    );
+
+
+    localStorage.setItem(
+      getWatchLaterKey(),
+      JSON.stringify(
+        saved
+      )
+    );
+
+  }
+
+
+  updateSaveButton();
+
+}
+
+
+function updateSaveButton() {
+
+  const button =
+    document.getElementById(
+      "saveButton"
+    );
+
+
+  if (!button) {
+    return;
+  }
+
+
+  if (
+    currentVideo &&
+    isSavedForLater(
+      currentVideo.storage_path
+    )
+  ) {
+
+    button.textContent =
+      "✓ Saved";
+
+  } else {
+
+    button.textContent =
+      "💾 Save";
+
+  }
+
+}
+
+
+function showWatchLater() {
+
+  const paths =
+    getWatchLater();
+
+
+  const savedVideos =
+    videos.filter(
+      video =>
+        paths.includes(
+          video.storage_path
+        )
+    );
+
+
+  document.getElementById(
+    "videoSectionTitle"
+  ).textContent =
+    "Watch later";
+
+
+  renderVideoGrid(
+    savedVideos,
+    document.getElementById(
+      "videoGrid"
+    )
+  );
+
+
+  window.scrollTo({
+
+    top:
+      0,
+
+    behavior:
+      "smooth"
+
+  );
+
+}
+
+
+/* =========================================================
+   CATEGORIES
    ========================================================= */
 
 function filterCategory(
@@ -2770,6 +2959,68 @@ function filterCategory(
 }
 
 
+function showAll() {
+
+  currentFilter =
+    "All";
+
+
+  document
+    .querySelectorAll(
+      ".category-bar button"
+    )
+    .forEach(
+      button =>
+        button.classList.remove(
+          "active"
+        )
+    );
+
+
+  const first =
+    document.querySelector(
+      ".category-bar button"
+    );
+
+
+  if (first) {
+
+    first.classList.add(
+      "active"
+    );
+
+  }
+
+
+  displayHomepage();
+
+}
+
+
+function showRecent() {
+
+  document.getElementById(
+    "videoSectionTitle"
+  ).textContent =
+    "Recently uploaded";
+
+
+  renderVideoGrid(
+
+    videos.slice(
+      0,
+      20
+    ),
+
+    document.getElementById(
+      "videoGrid"
+    )
+
+  );
+
+}
+
+
 /* =========================================================
    SEARCH
    ========================================================= */
@@ -2798,11 +3049,15 @@ function searchVideos() {
       video =>
         video.title
           .toLowerCase()
-          .includes(search) ||
+          .includes(
+            search
+          ) ||
 
         video.creator_name
           .toLowerCase()
-          .includes(search)
+          .includes(
+            search
+          )
     );
 
 
@@ -2822,16 +3077,1675 @@ function searchVideos() {
 
   );
 
+}
 
-  window.scrollTo({
 
-    top:
-      0,
+/* =========================================================
+   LIVE SESSIONS
+   ========================================================= */
 
-    behavior:
-      "smooth"
+async function loadLiveSessions() {
+
+  const section =
+    document.getElementById(
+      "liveSection"
+    );
+
+
+  const grid =
+    document.getElementById(
+      "liveGrid"
+    );
+
+
+  if (
+    !currentUser
+  ) {
+
+    section.classList.add(
+      "hidden"
+    );
+
+    return;
+
+  }
+
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from(
+        "live_sessions"
+      )
+      .select("*")
+      .eq(
+        "status",
+        "live"
+      )
+      .order(
+        "started_at",
+        {
+          ascending:
+            false
+        }
+      );
+
+
+  if (error) {
+
+    section.classList.add(
+      "hidden"
+    );
+
+    return;
+
+  }
+
+
+  const sessions =
+    data || [];
+
+
+  if (!sessions.length) {
+
+    section.classList.add(
+      "hidden"
+    );
+
+    return;
+
+  }
+
+
+  section.classList.remove(
+    "hidden"
+  );
+
+
+  grid.innerHTML =
+    "";
+
+
+  sessions.forEach(
+    session => {
+
+      const card =
+        document.createElement(
+          "article"
+        );
+
+
+      card.className =
+        "live-card";
+
+
+      card.innerHTML =
+        `
+          <div class="live-card-preview">
+            🔴
+          </div>
+
+          <div class="live-card-info">
+
+            <span class="live-pill">
+              LIVE
+            </span>
+
+            <h2>
+              ${escapeHtml(
+                session.title
+              )}
+            </h2>
+
+            <p>
+              ${escapeHtml(
+                session.streamer_name
+              )}
+            </p>
+
+            <p>
+              ${escapeHtml(
+                session.category
+              )}
+            </p>
+
+          </div>
+        `;
+
+
+      card.addEventListener(
+        "click",
+        function () {
+
+          openLiveViewer(
+            session
+          );
+
+        }
+      );
+
+
+      grid.appendChild(
+        card
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   LIVE SETUP
+   ========================================================= */
+
+function openLiveSetup() {
+
+  if (!currentUser) {
+
+    alert(
+      "Sign in before going live."
+    );
+
+    openAccount();
+
+    return;
+
+  }
+
+
+  document.getElementById(
+    "liveSetupPanel"
+  ).classList.remove(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "liveStudio"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "liveViewer"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "liveSetupStatus"
+  ).textContent =
+    "";
+
+
+  document.getElementById(
+    "liveModal"
+  ).classList.remove(
+    "hidden"
+  );
+
+}
+
+
+async function startLive(
+  mode
+) {
+
+  if (!currentUser) {
+    return;
+  }
+
+
+  const title =
+    document.getElementById(
+      "liveTitleInput"
+    ).value.trim();
+
+
+  const category =
+    document.getElementById(
+      "liveCategoryInput"
+    ).value;
+
+
+  const status =
+    document.getElementById(
+      "liveSetupStatus"
+    );
+
+
+  if (!title) {
+
+    status.textContent =
+      "Enter a stream title.";
+
+    return;
+
+  }
+
+
+  status.textContent =
+    "Requesting camera/screen permission...";
+
+
+  try {
+
+    if (
+      mode ===
+      "camera"
+    ) {
+
+      localLiveStream =
+        await navigator.mediaDevices.getUserMedia({
+
+          video:
+            true,
+
+          audio:
+            true
+
+        });
+
+    } else {
+
+      localLiveStream =
+        await navigator.mediaDevices.getDisplayMedia({
+
+          video:
+            true,
+
+          audio:
+            true
+
+        });
+
+    }
+
+
+  } catch (error) {
+
+    status.textContent =
+      "Media permission failed: " +
+      error.message;
+
+    return;
+
+  }
+
+
+  const {
+    data: session,
+    error
+  } =
+    await supabaseClient
+      .from(
+        "live_sessions"
+      )
+      .insert({
+
+        streamer_id:
+          currentUser.id,
+
+        streamer_name:
+          creatorName,
+
+        title,
+
+        category,
+
+        status:
+          "live"
+
+      })
+      .select()
+      .single();
+
+
+  if (error) {
+
+    localLiveStream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+
+    localLiveStream =
+      null;
+
+
+    status.textContent =
+      "Could not create live session: " +
+      error.message;
+
+    return;
+
+  }
+
+
+  activeLiveSession =
+    session;
+
+
+  liveRole =
+    "broadcaster";
+
+
+  liveParticipantId =
+    crypto.randomUUID();
+
+
+  liveViewerIds =
+    new Set();
+
+
+  livePeerConnections =
+    new Map();
+
+
+  document.getElementById(
+    "liveSetupPanel"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "liveStudio"
+  ).classList.remove(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "liveStudioTitle"
+  ).textContent =
+    title;
+
+
+  document.getElementById(
+    "liveLocalVideo"
+  ).srcObject =
+    localLiveStream;
+
+
+  updateLiveViewerCount();
+
+
+  liveChannel =
+    supabaseClient.channel(
+      "live:" +
+      session.id
+    );
+
+
+  setupBroadcasterChannel();
+
+
+}
+
+
+/* =========================================================
+   BROADCASTER CHANNEL
+   ========================================================= */
+
+function setupBroadcasterChannel() {
+
+  liveChannel
+    .on(
+      "broadcast",
+      {
+        event:
+          "viewer-join"
+      },
+      async ({
+        payload
+      }) => {
+
+        if (
+          !payload ||
+          !payload.viewerId
+        ) {
+          return;
+        }
+
+
+        liveViewerIds.add(
+          payload.viewerId
+        );
+
+
+        updateLiveViewerCount();
+
+
+        await sendViewerOffer(
+          payload.viewerId
+        );
+
+      }
+    )
+    .on(
+      "broadcast",
+      {
+        event:
+          "viewer-leave"
+      },
+      ({
+        payload
+      }) => {
+
+        if (
+          !payload ||
+          !payload.viewerId
+        ) {
+          return;
+        }
+
+
+        closeViewerConnection(
+          payload.viewerId
+        );
+
+
+        liveViewerIds.delete(
+          payload.viewerId
+        );
+
+
+        updateLiveViewerCount();
+
+      }
+    )
+    .on(
+      "broadcast",
+      {
+        event:
+          "answer"
+      },
+      async ({
+        payload
+      }) => {
+
+        if (
+          payload?.to !==
+          liveParticipantId
+        ) {
+          return;
+        }
+
+
+        const pc =
+          livePeerConnections.get(
+            payload.from
+          );
+
+
+        if (
+          pc &&
+          payload.answer
+        ) {
+
+          await pc.setRemoteDescription(
+            payload.answer
+          );
+
+        }
+
+      }
+    )
+    .on(
+      "broadcast",
+      {
+        event:
+          "ice"
+      },
+      async ({
+        payload
+      }) => {
+
+        if (
+          payload?.to !==
+          liveParticipantId
+        ) {
+          return;
+        }
+
+
+        const pc =
+          livePeerConnections.get(
+            payload.from
+          );
+
+
+        if (
+          pc &&
+          payload.candidate
+        ) {
+
+          try {
+
+            await pc.addIceCandidate(
+              payload.candidate
+            );
+
+          } catch {}
+
+        }
+
+      }
+    )
+    .on(
+      "broadcast",
+      {
+        event:
+          "chat"
+      },
+      ({
+        payload
+      }) => {
+
+        if (
+          payload?.from ===
+          liveParticipantId
+        ) {
+          return;
+        }
+
+
+        appendLiveChatMessage(
+          payload
+        );
+
+      }
+    )
+    .subscribe(
+      function (
+        status
+      ) {
+
+        if (
+          status ===
+          "SUBSCRIBED"
+        ) {
+
+          appendLiveChatMessage({
+
+            name:
+              "GryphonTube",
+
+            text:
+              "Your stream is live!"
+
+          });
+
+        }
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   CREATE VIEWER OFFER
+   ========================================================= */
+
+async function sendViewerOffer(
+  viewerId
+) {
+
+  if (
+    !localLiveStream ||
+    !liveChannel
+  ) {
+    return;
+  }
+
+
+  const pc =
+    new RTCPeerConnection({
+
+      iceServers: [
+
+        {
+          urls:
+            "stun:stun.l.google.com:19302"
+        },
+
+        {
+          urls:
+            "stun:stun1.l.google.com:19302"
+        }
+
+      ]
+
+    });
+
+
+  livePeerConnections.set(
+    viewerId,
+    pc
+  );
+
+
+  localLiveStream
+    .getTracks()
+    .forEach(
+      track => {
+
+        pc.addTrack(
+          track,
+          localLiveStream
+        );
+
+      }
+    );
+
+
+  pc.onicecandidate =
+    function (
+      event
+    ) {
+
+      if (
+        event.candidate
+      ) {
+
+        liveChannel.send({
+
+          type:
+            "broadcast",
+
+          event:
+            "ice",
+
+          payload: {
+
+            from:
+              liveParticipantId,
+
+            to:
+              viewerId,
+
+            candidate:
+              event.candidate
+
+          }
+
+        });
+
+      }
+
+    };
+
+
+  const offer =
+    await pc.createOffer();
+
+
+  await pc.setLocalDescription(
+    offer
+  );
+
+
+  await liveChannel.send({
+
+    type:
+      "broadcast",
+
+    event:
+      "offer",
+
+    payload: {
+
+      from:
+        liveParticipantId,
+
+      to:
+        viewerId,
+
+      offer:
+        pc.localDescription
+
+    }
 
   });
+
+}
+
+
+function closeViewerConnection(
+  viewerId
+) {
+
+  const pc =
+    livePeerConnections.get(
+      viewerId
+    );
+
+
+  if (pc) {
+
+    pc.close();
+
+    livePeerConnections.delete(
+      viewerId
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   VIEWER
+   ========================================================= */
+
+function openLiveViewer(
+  session
+) {
+
+  if (!currentUser) {
+
+    alert(
+      "Sign in to watch live streams."
+    );
+
+    openAccount();
+
+    return;
+
+  }
+
+
+  activeLiveSession =
+    session;
+
+
+  liveRole =
+    "viewer";
+
+
+  liveParticipantId =
+    crypto.randomUUID();
+
+
+  liveBroadcasterId =
+    session.streamer_id;
+
+
+  document.getElementById(
+    "liveSetupPanel"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "liveStudio"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "liveViewer"
+  ).classList.remove(
+    "hidden"
+  );
+
+
+  document.getElementById(
+    "liveRoomTitle"
+  ).textContent =
+    session.title;
+
+
+  document.getElementById(
+    "liveStreamerName"
+  ).textContent =
+    session.streamer_name;
+
+
+  document.getElementById(
+    "liveViewerCountViewer"
+  ).textContent =
+    "Connecting...";
+
+
+  document.getElementById(
+    "liveModal"
+  ).classList.remove(
+    "hidden"
+  );
+
+
+  liveChannel =
+    supabaseClient.channel(
+      "live:" +
+      session.id
+    );
+
+
+  setupViewerChannel();
+
+}
+
+
+function setupViewerChannel() {
+
+  liveChannel
+    .on(
+      "broadcast",
+      {
+        event:
+          "offer"
+      },
+      async ({
+        payload
+      }) => {
+
+        if (
+          payload?.to !==
+          liveParticipantId
+        ) {
+          return;
+        }
+
+
+        liveBroadcasterId =
+          payload.from;
+
+
+        await handleViewerOffer(
+          payload.offer
+        );
+
+      }
+    )
+    .on(
+      "broadcast",
+      {
+        event:
+          "ice"
+      },
+      async ({
+        payload
+      }) => {
+
+        if (
+          payload?.to !==
+          liveParticipantId
+        ) {
+          return;
+        }
+
+
+        if (
+          liveViewerPeer &&
+          payload.candidate
+        ) {
+
+          try {
+
+            await liveViewerPeer
+              .addIceCandidate(
+                payload.candidate
+              );
+
+          } catch {}
+
+        }
+
+      }
+    )
+    .on(
+      "broadcast",
+      {
+        event:
+          "viewer-count"
+      },
+      ({
+        payload
+      }) => {
+
+        if (
+          payload?.count !==
+          undefined
+        ) {
+
+          document.getElementById(
+            "liveViewerCountViewer"
+          ).textContent =
+            payload.count +
+            (
+              payload.count ===
+              1
+                ? " watching"
+                : " watching"
+            );
+
+        }
+
+      }
+    )
+    .on(
+      "broadcast",
+      {
+        event:
+          "stream-ended"
+      },
+      () => {
+
+        alert(
+          "The livestream has ended."
+        );
+
+        leaveLiveStream();
+
+      }
+    )
+    .on(
+      "broadcast",
+      {
+        event:
+          "chat"
+      },
+      ({
+        payload
+      }) => {
+
+        if (
+          payload?.from ===
+          liveParticipantId
+        ) {
+          return;
+        }
+
+
+        appendViewerChatMessage(
+          payload
+        );
+
+      }
+    )
+    .subscribe(
+      async function (
+        status
+      ) {
+
+        if (
+          status ===
+          "SUBSCRIBED"
+        ) {
+
+          await liveChannel.send({
+
+            type:
+              "broadcast",
+
+            event:
+              "viewer-join",
+
+            payload: {
+
+              viewerId:
+                liveParticipantId
+
+            }
+
+          });
+
+        }
+
+      }
+    );
+
+}
+
+
+async function handleViewerOffer(
+  offer
+) {
+
+  liveViewerPeer =
+    new RTCPeerConnection({
+
+      iceServers: [
+
+        {
+          urls:
+            "stun:stun.l.google.com:19302"
+        },
+
+        {
+          urls:
+            "stun:stun1.l.google.com:19302"
+        }
+
+      ]
+
+    });
+
+
+  liveViewerPeer.ontrack =
+    function (
+      event
+    ) {
+
+      const video =
+        document.getElementById(
+          "liveRemoteVideo"
+        );
+
+
+      if (
+        event.streams &&
+        event.streams[0]
+      ) {
+
+        video.srcObject =
+          event.streams[0];
+
+      }
+
+    };
+
+
+  liveViewerPeer.onicecandidate =
+    function (
+      event
+    ) {
+
+      if (
+        event.candidate
+      ) {
+
+        liveChannel.send({
+
+          type:
+            "broadcast",
+
+          event:
+            "ice",
+
+          payload: {
+
+            from:
+              liveParticipantId,
+
+            to:
+              liveBroadcasterId,
+
+            candidate:
+              event.candidate
+
+          }
+
+        });
+
+      }
+
+    };
+
+
+  await liveViewerPeer.setRemoteDescription(
+    offer
+  );
+
+
+  const answer =
+    await liveViewerPeer.createAnswer();
+
+
+  await liveViewerPeer.setLocalDescription(
+    answer
+  );
+
+
+  await liveChannel.send({
+
+    type:
+      "broadcast",
+
+    event:
+      "answer",
+
+    payload: {
+
+      from:
+        liveParticipantId,
+
+      to:
+        liveBroadcasterId,
+
+      answer:
+        liveViewerPeer.localDescription
+
+    }
+
+  });
+
+
+  document.getElementById(
+    "liveViewerCountViewer"
+  ).textContent =
+    "Connected";
+
+}
+
+
+/* =========================================================
+   LIVE CHAT
+   ========================================================= */
+
+function sendLiveChat() {
+
+  const input =
+    document.getElementById(
+      "liveChatInput"
+    );
+
+
+  const text =
+    input.value.trim();
+
+
+  if (
+    !text ||
+    !liveChannel
+  ) {
+    return;
+  }
+
+
+  const payload = {
+
+    from:
+      liveParticipantId,
+
+    name:
+      creatorName,
+
+    text
+
+  };
+
+
+  appendLiveChatMessage(
+    payload
+  );
+
+
+  liveChannel.send({
+
+    type:
+      "broadcast",
+
+    event:
+      "chat",
+
+    payload
+
+  });
+
+
+  input.value =
+    "";
+
+}
+
+
+function sendViewerChat() {
+
+  const input =
+    document.getElementById(
+      "liveViewerChatInput"
+    );
+
+
+  const text =
+    input.value.trim();
+
+
+  if (
+    !text ||
+    !liveChannel
+  ) {
+    return;
+  }
+
+
+  const payload = {
+
+    from:
+      liveParticipantId,
+
+    name:
+      creatorName,
+
+    text
+
+  };
+
+
+  appendViewerChatMessage(
+    payload
+  );
+
+
+  liveChannel.send({
+
+    type:
+      "broadcast",
+
+    event:
+      "chat",
+
+    payload
+
+  });
+
+
+  input.value =
+    "";
+
+}
+
+
+function appendLiveChatMessage(
+  payload
+) {
+
+  const list =
+    document.getElementById(
+      "liveChatList"
+    );
+
+
+  const item =
+    document.createElement(
+      "div"
+    );
+
+
+  item.className =
+    "live-chat-message";
+
+
+  item.innerHTML =
+    `
+      <strong>
+        ${escapeHtml(
+          payload.name ||
+          "User"
+        )}
+      </strong>
+
+      ${escapeHtml(
+        payload.text ||
+        ""
+      )}
+    `;
+
+
+  list.appendChild(
+    item
+  );
+
+
+  list.scrollTop =
+    list.scrollHeight;
+
+}
+
+
+function appendViewerChatMessage(
+  payload
+) {
+
+  const list =
+    document.getElementById(
+      "liveViewerChatList"
+    );
+
+
+  const item =
+    document.createElement(
+      "div"
+    );
+
+
+  item.className =
+    "live-chat-message";
+
+
+  item.innerHTML =
+    `
+      <strong>
+        ${escapeHtml(
+          payload.name ||
+          "User"
+        )}
+      </strong>
+
+      ${escapeHtml(
+        payload.text ||
+        ""
+      )}
+    `;
+
+
+  list.appendChild(
+    item
+  );
+
+
+  list.scrollTop =
+    list.scrollHeight;
+
+}
+
+
+/* =========================================================
+   LIVE VIEWER COUNT
+   ========================================================= */
+
+function updateLiveViewerCount() {
+
+  const count =
+    liveViewerIds.size;
+
+
+  const text =
+    count +
+    (
+      count ===
+      1
+        ? " watching"
+        : " watching"
+    );
+
+
+  document.getElementById(
+    "liveViewerCount"
+  ).textContent =
+    text;
+
+
+  if (
+    liveChannel
+  ) {
+
+    liveChannel.send({
+
+      type:
+        "broadcast",
+
+      event:
+        "viewer-count",
+
+      payload: {
+
+        count
+
+      }
+
+    });
+
+  }
+
+}
+
+
+/* =========================================================
+   END LIVE
+   ========================================================= */
+
+async function endLiveStream() {
+
+  if (
+    liveRole !==
+    "broadcaster"
+  ) {
+
+    return;
+
+  }
+
+
+  if (
+    liveChannel
+  ) {
+
+    await liveChannel.send({
+
+      type:
+        "broadcast",
+
+      event:
+        "stream-ended",
+
+      payload: {}
+
+    });
+
+  }
+
+
+  if (
+    activeLiveSession
+  ) {
+
+    await supabaseClient
+      .from(
+        "live_sessions"
+      )
+      .update({
+
+        status:
+          "ended",
+
+        ended_at:
+          new Date().toISOString()
+
+      })
+      .eq(
+        "id",
+        activeLiveSession.id
+      );
+
+  }
+
+
+  livePeerConnections.forEach(
+    pc =>
+      pc.close()
+  );
+
+
+  livePeerConnections.clear();
+
+
+  if (
+    localLiveStream
+  ) {
+
+    localLiveStream
+      .getTracks()
+      .forEach(
+        track =>
+          track.stop()
+      );
+
+  }
+
+
+  localLiveStream =
+    null;
+
+
+  if (
+    liveChannel
+  ) {
+
+    await supabaseClient
+      .removeChannel(
+        liveChannel
+      );
+
+  }
+
+
+  liveChannel =
+    null;
+
+  activeLiveSession =
+    null;
+
+  liveRole =
+    null;
+
+
+  document.getElementById(
+    "liveModal"
+  ).classList.add(
+    "hidden"
+  );
+
+
+  await loadLiveSessions();
+
+}
+
+
+async function leaveLiveStream() {
+
+  if (
+    liveRole !==
+    "viewer"
+  ) {
+
+    closeLiveWindow();
+
+    return;
+
+  }
+
+
+  if (
+    liveChannel
+  ) {
+
+    await liveChannel.send({
+
+      type:
+        "broadcast",
+
+      event:
+        "viewer-leave",
+
+      payload: {
+
+        viewerId:
+          liveParticipantId
+
+      }
+
+    });
+
+
+    await supabaseClient
+      .removeChannel(
+        liveChannel
+      );
+
+  }
+
+
+  if (
+    liveViewerPeer
+  ) {
+
+    liveViewerPeer.close();
+
+  }
+
+
+  liveViewerPeer =
+    null;
+
+
+  liveChannel =
+    null;
+
+  activeLiveSession =
+    null;
+
+  liveRole =
+    null;
+
+
+  document.getElementById(
+    "liveRemoteVideo"
+  ).srcObject =
+    null;
+
+
+  document.getElementById(
+    "liveModal"
+  ).classList.add(
+    "hidden"
+  );
+
+}
+
+
+function closeLiveWindow() {
+
+  if (
+    liveRole ===
+    "broadcaster"
+  ) {
+
+    if (
+      confirm(
+        "End the livestream?"
+      )
+    ) {
+
+      endLiveStream();
+
+    }
+
+    return;
+
+  }
+
+
+  if (
+    liveRole ===
+    "viewer"
+  ) {
+
+    leaveLiveStream();
+
+    return;
+
+  }
+
+
+  document.getElementById(
+    "liveModal"
+  ).classList.add(
+    "hidden"
+  );
 
 }
 
@@ -2875,7 +4789,7 @@ if (
 
 
 /* =========================================================
-   MOBILE SIDEBAR
+   SIDEBAR
    ========================================================= */
 
 function toggleSidebar() {
@@ -2942,8 +4856,7 @@ async function copyVideoLink() {
       "Video link copied!"
     );
 
-
-  } catch (error) {
+  } catch {
 
     alert(
       "Couldn't copy the link."
@@ -3045,7 +4958,8 @@ function formatDate(
 
 
   if (
-    seconds < 60
+    seconds <
+    60
   ) {
 
     return "Just now";
@@ -3061,7 +4975,8 @@ function formatDate(
 
 
   if (
-    minutes < 60
+    minutes <
+    60
   ) {
 
     return (
@@ -3085,7 +5000,8 @@ function formatDate(
 
 
   if (
-    hours < 24
+    hours <
+    24
   ) {
 
     return (
@@ -3109,7 +5025,8 @@ function formatDate(
 
 
   if (
-    days < 30
+    days <
+    30
   ) {
 
     return (
@@ -3189,6 +5106,25 @@ function getInitial(
   return name
     .charAt(0)
     .toUpperCase();
+
+}
+
+
+function getCreatorColor(
+  name
+) {
+
+  if (
+    name ===
+    creatorName
+  ) {
+
+    return creatorColor;
+
+  }
+
+
+  return "#673ab7";
 
 }
 
