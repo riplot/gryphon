@@ -5122,3 +5122,40 @@ function escapeAttribute(
     );
 
 }
+async function testCloudinaryUpload(event) {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", "gryphontube");
+
+  try {
+    alert("Uploading to Cloudinary...");
+
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/hzzgy02q/video/upload",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Cloudinary error:", data);
+      alert("Upload failed. Check the console.");
+      return;
+    }
+
+    console.log("CLOUDINARY UPLOAD SUCCESS:", data);
+    console.log("Video URL:", data.secure_url);
+
+    alert("UPLOAD WORKED! Check the console for the video URL.");
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    alert("Upload failed. Check the console.");
+  }
+}
