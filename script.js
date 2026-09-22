@@ -2822,48 +2822,28 @@ function updateSaveButton() {
   }
 
 }
-
-
 function showWatchLater() {
+  const paths = getWatchLater();
 
-  const paths =
-    getWatchLater();
+  const savedVideos = videos.filter(
+    video => paths.includes(video.storage_path)
+  );
 
-
-  const savedVideos =
-    videos.filter(
-      video =>
-        paths.includes(
-          video.storage_path
-        )
-    );
-
-
-  document.getElementById(
-    "videoSectionTitle"
-  ).textContent =
+  document.getElementById("videoSectionTitle").textContent =
     "Watch later";
-
 
   renderVideoGrid(
     savedVideos,
-    document.getElementById(
-      "videoGrid"
-    )
+    document.getElementById("videoGrid")
   );
-
 
   window.scrollTo({
-
-    top:
-      0,
-
-    behavior:
-      "smooth"
-
-  );
-
+    top: 0,
+    behavior: "smooth"
+  });
 }
+
+
 
 
 /* =========================================================
