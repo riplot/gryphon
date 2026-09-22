@@ -1870,3 +1870,148 @@ section {
     grid-template-columns: 1fr;
   }
 }
+/* =========================================================
+   GRYPHONTUBE PROFILE / CHANNEL OVERLAP FIX
+   ========================================================= */
+
+#gtChannelModal .gt-modal {
+  overflow-x: hidden;
+}
+
+#gtChannelModal .gt-channel-main {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+  margin-top: -36px;
+}
+
+#gtChannelModal .gt-channel-avatar {
+  width: 92px;
+  height: 92px;
+  min-width: 92px;
+  min-height: 92px;
+  box-sizing: border-box;
+}
+
+#gtChannelModal .gt-channel-main > div:nth-child(2) {
+  min-width: 0;
+  width: 100%;
+}
+
+#gtChannelModal .gt-channel-main h1 {
+  margin: 0 0 10px;
+  max-width: 100%;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#gtChannelModal .gt-channel-main p {
+  margin: 8px 0;
+  max-width: 100%;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#gtChannelModal .gt-channel-main .gt-stat {
+  display: inline-block;
+  white-space: nowrap;
+  margin: 0 14px 6px 0;
+}
+
+#gtChannelModal .gt-channel-main > .gt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-width: 150px;
+}
+
+#gtChannelModal .gt-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 22px 18px;
+}
+
+#gtChannelModal .gt-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(230px, 280px)
+  );
+  justify-content: start;
+  align-items: start;
+  gap: 18px;
+  padding: 0 22px 22px;
+}
+
+#gtChannelModal .gt-card {
+  width: 100%;
+  max-width: 280px;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+#gtChannelModal .gt-card h3 {
+  margin: 10px 0 6px;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#gtChannelModal .gt-card p {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#gtChannelModal .gt-card img,
+#gtChannelModal .gt-card video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+/* Smaller screens */
+@media (max-width: 800px) {
+  #gtChannelModal .gt-channel-main {
+    grid-template-columns: 1fr;
+    margin-top: -24px;
+  }
+
+  #gtChannelModal .gt-channel-main > .gt-actions {
+    justify-content: flex-start;
+    min-width: 0;
+  }
+
+  #gtChannelModal .gt-channel-avatar {
+    width: 76px;
+    height: 76px;
+    min-width: 76px;
+    min-height: 76px;
+  }
+
+  #gtChannelModal .gt-grid {
+    grid-template-columns: repeat(
+      auto-fill,
+      minmax(200px, 1fr)
+    );
+  }
+
+  #gtChannelModal .gt-card {
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  #gtChannelModal .gt-grid {
+    grid-template-columns: 1fr;
+  }
+}
