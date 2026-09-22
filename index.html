@@ -1,455 +1,177 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>GryphonTube</title>
-
-  <link
-    rel="stylesheet"
-    href="css.css"
-  >
-
+  <link rel="stylesheet" href="css.css">
 </head>
-
-
 <body>
 
-  <!-- ==================== TOP BAR ==================== -->
-
   <header class="topbar">
+    <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
 
-    <button
-      class="mobile-menu"
-      onclick="toggleSidebar()"
-    >
-      ☰
-    </button>
-
-
-    <div
-      class="logo"
-      onclick="showAll()"
-    >
-
-      <span class="logo-icon">
-        ▶
-      </span>
-
+    <div class="logo" onclick="showAll()">
+      <span class="logo-icon">▶</span>
       GryphonTube
-
     </div>
-
 
     <div class="search">
-
-    <input
-  id="searchInput"
-  type="search"
-  placeholder="Search GryphonTube"
-  autocomplete="new-password"
-  readonly
-  onfocus="this.removeAttribute('readonly')"
-  onkeydown="if(event.key==='Enter') searchVideos()"
->
-
-      <button onclick="searchVideos()">
-        🔍
-      </button>
-
+      <input
+        id="searchInput"
+        name="gryphontube-search"
+        type="search"
+        placeholder="Search GryphonTube"
+        autocomplete="new-password"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        readonly
+        onfocus="this.removeAttribute('readonly')"
+        onkeydown="if(event.key==='Enter') searchVideos()"
+      >
+      <button onclick="searchVideos()" title="Search">🔍</button>
     </div>
-
 
     <div class="top-buttons">
-
-      <button
-        onclick="document.getElementById('videoUpload').click()"
-        title="Upload video"
-      >
-        ⬆️
-      </button>
-
-
-      <button
-        onclick="omega()"
-        title="Dark mode"
-      >
-        🌙
-      </button>
-
-
-      <button
-        onclick="showNotifications()"
-        title="Notifications"
-      >
-        🔔
-      </button>
-
-
-      <button
-        class="profile"
-        id="profileButton"
-        onclick="openAccount()"
-        title="Account"
-      >
-        G
-      </button>
-
+      <button class="go-live-button" onclick="openLiveSetup()" title="Go live">🔴</button>
+      <button onclick="document.getElementById('videoUpload').click()" title="Upload video">⬆️</button>
+      <button onclick="omega()" title="Dark mode">🌙</button>
+      <button onclick="showNotifications()" title="Notifications">🔔</button>
+      <button class="profile" id="profileButton" onclick="openAccount()" title="Account">G</button>
     </div>
-
   </header>
-
-
-  <!-- ==================== UPLOAD ==================== -->
 
   <input
     type="file"
     id="videoUpload"
-    accept="video/mp4,video/webm,video/ogg"
+    accept="video/mp4,video.webm,video/ogg"
     style="display:none"
     onchange="uploadVideo(event)"
   >
 
-
-  <!-- ==================== SIDEBAR ==================== -->
-
-  <aside
-    class="sidebar"
-    id="sidebar"
-  >
-
-    <button
-      class="side-button active"
-      onclick="showAll()"
-    >
-      🏠
-      <span>Home</span>
-    </button>
-
-
-    <button
-      class="side-button"
-      onclick="showRecent()"
-    >
-      🕒
-      <span>Recent</span>
-    </button>
-
-
-    <button
-      class="side-button"
-      onclick="openOwnChannel()"
-    >
-      👤
-      <span>Your Channel</span>
-    </button>
-
+  <aside class="sidebar" id="sidebar">
+    <button class="side-button active" onclick="showAll()">🏠 <span>Home</span></button>
+    <button class="side-button" onclick="showRecent()">🕒 <span>Recent</span></button>
+    <button class="side-button" onclick="showSubscriptions()">📺 <span>Subscriptions</span></button>
+    <button class="side-button" onclick="showWatchLater()">💾 <span>Watch later</span></button>
+    <button class="side-button" onclick="openOwnChannel()">👤 <span>Your Channel</span></button>
+    <button class="side-button" onclick="openLiveSetup()">🔴 <span>Go Live</span></button>
 
     <div class="sidebar-divider"></div>
 
-
-    <h3>
-      Categories
-    </h3>
-
-
-    <button
-      class="side-button"
-      onclick="filterCategory('Gaming')"
-    >
-      🎮
-      <span>Gaming</span>
-    </button>
-
-
-    <button
-      class="side-button"
-      onclick="filterCategory('Music')"
-    >
-      🎵
-      <span>Music</span>
-    </button>
-
-
-    <button
-      class="side-button"
-      onclick="filterCategory('Animation')"
-    >
-      🎨
-      <span>Animation</span>
-    </button>
-
-
-    <button
-      class="side-button"
-      onclick="filterCategory('Funny')"
-    >
-      😂
-      <span>Funny</span>
-    </button>
-
+    <h3>Categories</h3>
+    <button class="side-button" onclick="filterCategory('Gaming')">🎮 <span>Gaming</span></button>
+    <button class="side-button" onclick="filterCategory('Music')">🎵 <span>Music</span></button>
+    <button class="side-button" onclick="filterCategory('Animation')">🎨 <span>Animation</span></button>
+    <button class="side-button" onclick="filterCategory('Funny')">😂 <span>Funny</span></button>
   </aside>
 
-
-  <!-- ==================== MAIN ==================== -->
-
   <main class="content">
-
     <div class="category-bar">
-
-      <button
-        class="active"
-        onclick="showAll()"
-      >
-        All
-      </button>
-
-
-      <button
-        onclick="filterCategory('Gaming')"
-      >
-        Gaming
-      </button>
-
-
-      <button
-        onclick="filterCategory('Music')"
-      >
-        Music
-      </button>
-
-
-      <button
-        onclick="filterCategory('Animation')"
-      >
-        Animation
-      </button>
-
-
-      <button
-        onclick="filterCategory('Funny')"
-      >
-        Funny
-      </button>
-
+      <button class="active" onclick="showAll()">All</button>
+      <button onclick="filterCategory('Gaming')">Gaming</button>
+      <button onclick="filterCategory('Music')">Music</button>
+      <button onclick="filterCategory('Animation')">Animation</button>
+      <button onclick="filterCategory('Funny')">Funny</button>
     </div>
 
-
-    <!-- ==================== FEATURED ==================== -->
+    <section id="liveSection" class="live-section hidden">
+      <div class="section-header">
+        <h1>🔴 Live Now</h1>
+      </div>
+      <div id="liveGrid" class="live-grid"></div>
+    </section>
 
     <section>
-
       <div class="section-header">
-
-        <h1>
-          Featured
-        </h1>
-
+        <h1>Featured</h1>
       </div>
-
       <div id="featuredVideo"></div>
-
     </section>
-
-
-    <!-- ==================== RECENT ==================== -->
 
     <section>
-
       <div class="section-header">
-
-        <h1>
-          Recently uploaded
-        </h1>
-
-
-        <button
-          class="text-button"
-          onclick="showRecent()"
-        >
-          See all
-        </button>
-
+        <h1>Recently uploaded</h1>
+        <button class="text-button" onclick="showRecent()">See all</button>
       </div>
-
-
-      <div
-        id="recentGrid"
-        class="video-grid"
-      ></div>
-
+      <div id="recentGrid" class="video-grid"></div>
     </section>
-
-
-    <!-- ==================== ALL VIDEOS ==================== -->
 
     <section>
-
       <div class="section-header">
-
-        <h1 id="videoSectionTitle">
-          All videos
-        </h1>
-
+        <h1 id="videoSectionTitle">All videos</h1>
       </div>
-
-
-      <div
-        id="videoGrid"
-        class="video-grid"
-      ></div>
-
+      <div id="videoGrid" class="video-grid"></div>
     </section>
-
   </main>
 
-
-  <!-- ==================== VIDEO PLAYER ==================== -->
-
-  <div
-    id="player"
-    class="overlay hidden"
-  >
-
+  <!-- VIDEO PLAYER -->
+  <div id="player" class="overlay hidden">
     <div class="player-window">
+      <button class="close-player" onclick="closePlayer()">✕</button>
 
-      <button
-        class="close-player"
-        onclick="closePlayer()"
-      >
-        ✕
-      </button>
+      <div class="player-layout">
+        <div class="player-main">
+          <video id="mainVideo" controls playsinline></video>
 
+          <div class="player-details">
+            <h1 id="playerTitle"></h1>
 
-      <video
-        id="mainVideo"
-        controls
-        playsinline
-      ></video>
+            <div class="creator-row">
+              <button class="creator-link" id="playerCreator" onclick="openSelectedCreatorChannel()"></button>
+              <button class="subscribe-button" id="subscribeButton" onclick="toggleCurrentSubscription()">Subscribe</button>
+              <span class="subscriber-count" id="playerSubscriberCount">0 subscribers</span>
+            </div>
 
+            <p id="playerInfo"></p>
 
-      <div class="player-details">
+            <div class="player-actions">
+              <button id="likeButton" onclick="toggleLike()">❤️ Like</button>
+              <button id="saveButton" onclick="toggleWatchLater()">💾 Save</button>
+              <button onclick="copyVideoLink()">🔗 Share</button>
+            </div>
 
-        <h1 id="playerTitle"></h1>
+            <div class="comments">
+              <h2>Comments</h2>
 
+              <div class="comment-box">
+                <input
+                  id="commentInput"
+                  type="text"
+                  maxlength="500"
+                  placeholder="Add a comment..."
+                  onkeydown="if(event.key==='Enter') addComment()"
+                >
+                <button onclick="addComment()">Comment</button>
+              </div>
 
-        <button
-          class="creator-link"
-          id="playerCreator"
-          onclick="openSelectedCreatorChannel()"
-        ></button>
-
-
-        <p id="playerInfo"></p>
-
-
-        <div class="player-actions">
-
-          <button
-            id="likeButton"
-            onclick="toggleLike()"
-          >
-            ❤️ Like
-          </button>
-
-
-          <button onclick="copyVideoLink()">
-            🔗 Share
-          </button>
-
-        </div>
-
-
-        <!-- COMMENTS -->
-
-        <div class="comments">
-
-          <h2>
-            Comments
-          </h2>
-
-
-          <div class="comment-box">
-
-            <input
-              id="commentInput"
-              type="text"
-              maxlength="500"
-              placeholder="Add a comment..."
-              onkeydown="if(event.key==='Enter') addComment()"
-            >
-
-
-            <button onclick="addComment()">
-              Comment
-            </button>
-
+              <div id="commentList"></div>
+            </div>
           </div>
-
-
-          <div id="commentList"></div>
-
         </div>
 
+        <aside class="related-sidebar">
+          <h2>Up next</h2>
+          <div id="relatedGrid"></div>
+        </aside>
       </div>
-
     </div>
-
   </div>
 
-
-  <!-- ==================== ACCOUNT ==================== -->
-
-  <div
-    id="accountModal"
-    class="overlay hidden"
-  >
-
+  <!-- ACCOUNT -->
+  <div id="accountModal" class="overlay hidden">
     <div class="modal-window auth-window">
-
-      <button
-        class="close-player"
-        onclick="closeAccount()"
-      >
-        ✕
-      </button>
-
-
-      <!-- LOGGED OUT -->
+      <button class="close-player" onclick="closeAccount()">✕</button>
 
       <div id="loggedOutAccount">
+        <div class="profile-edit-icon" id="authIcon">G</div>
 
-        <div
-          class="profile-edit-icon"
-          id="authIcon"
-        >
-          G
-        </div>
+        <h1 id="authTitle">Sign in to GryphonTube</h1>
+        <p id="authStatus" class="auth-status"></p>
 
-
-        <h1 id="authTitle">
-          Sign in to GryphonTube
-        </h1>
-
-
-        <p
-          id="authStatus"
-          class="auth-status"
-        ></p>
-
-
-        <label>
-          Email
-        </label>
-
-
+        <label>Email</label>
         <input
           id="authEmail"
           type="email"
@@ -457,12 +179,7 @@
           autocomplete="email"
         >
 
-
-        <label>
-          Password
-        </label>
-
-
+        <label>Password</label>
         <input
           id="authPassword"
           type="password"
@@ -470,17 +187,8 @@
           autocomplete="current-password"
         >
 
-
-        <div
-          id="signupFields"
-          class="hidden"
-        >
-
-          <label>
-            Channel name
-          </label>
-
-
+        <div id="signupFields" class="hidden">
+          <label>Channel name</label>
           <input
             id="authChannelName"
             type="text"
@@ -488,20 +196,13 @@
             placeholder="Your channel name"
           >
 
-
-          <label>
-            Channel bio
-          </label>
-
-
+          <label>Channel bio</label>
           <textarea
             id="authBio"
             maxlength="160"
             placeholder="Tell people about your channel..."
           ></textarea>
-
         </div>
-
 
         <button
           id="authSubmitButton"
@@ -511,7 +212,6 @@
           Sign In
         </button>
 
-
         <button
           id="authSwitchButton"
           class="secondary-button"
@@ -519,170 +219,232 @@
         >
           Create an account
         </button>
-
       </div>
 
+      <div id="loggedInAccount" class="hidden">
+        <div class="profile-edit-icon" id="accountIcon">G</div>
 
-      <!-- LOGGED IN -->
+        <h1>Your Account</h1>
+        <p id="accountEmail" class="account-email"></p>
 
-      <div
-        id="loggedInAccount"
-        class="hidden"
-      >
+        <label>Channel name</label>
+        <input id="accountChannelName" type="text" maxlength="40">
 
-        <div
-          class="profile-edit-icon"
-          id="accountIcon"
-        >
-          G
-        </div>
+        <label>Channel bio</label>
+        <textarea id="accountBio" maxlength="160"></textarea>
 
-
-        <h1>
-          Your Account
-        </h1>
-
-
-        <p
-          id="accountEmail"
-          class="account-email"
-        ></p>
-
-
-        <label>
-          Channel name
-        </label>
-
-
-        <input
-          id="accountChannelName"
-          type="text"
-          maxlength="40"
-        >
-
-
-        <label>
-          Channel bio
-        </label>
-
-
-        <textarea
-          id="accountBio"
-          maxlength="160"
-        ></textarea>
-
-
-        <label>
-          Profile color
-        </label>
-
+        <label>Profile color</label>
 
         <div class="profile-colors">
-
-          <button
-            class="color-choice purple"
-            onclick="chooseProfileColor('#673ab7')"
-          ></button>
-
-          <button
-            class="color-choice blue"
-            onclick="chooseProfileColor('#1976d2')"
-          ></button>
-
-          <button
-            class="color-choice green"
-            onclick="chooseProfileColor('#2e7d32')"
-          ></button>
-
-          <button
-            class="color-choice orange"
-            onclick="chooseProfileColor('#ef6c00')"
-          ></button>
-
-          <button
-            class="color-choice red"
-            onclick="chooseProfileColor('#d32f2f')"
-          ></button>
-
+          <button class="color-choice purple" onclick="chooseProfileColor('#673ab7')"></button>
+          <button class="color-choice blue" onclick="chooseProfileColor('#1976d2')"></button>
+          <button class="color-choice green" onclick="chooseProfileColor('#2e7d32')"></button>
+          <button class="color-choice orange" onclick="chooseProfileColor('#ef6c00')"></button>
+          <button class="color-choice red" onclick="chooseProfileColor('#d32f2f')"></button>
         </div>
 
-
-        <button
-          class="primary-button"
-          onclick="saveAccountProfile()"
-        >
+        <button class="primary-button" onclick="saveAccountProfile()">
           Save Profile
         </button>
 
+        <button class="secondary-button" onclick="signOut()">
+          Sign Out
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHANNEL -->
+  <div id="channelModal" class="overlay hidden">
+    <div class="channel-window">
+      <button class="close-player" onclick="closeChannel()">✕</button>
+
+      <div class="channel-header">
+        <div class="big-channel-icon" id="channelIcon">G</div>
+
+        <div class="channel-info">
+          <h1 id="channelName"></h1>
+          <p id="channelStats"></p>
+          <p class="channel-bio" id="channelBio"></p>
+
+          <button
+            class="subscribe-button"
+            id="channelSubscribeButton"
+            onclick="toggleChannelSubscription()"
+          >
+            Subscribe
+          </button>
+        </div>
+      </div>
+
+      <div id="channelGrid" class="video-grid"></div>
+    </div>
+  </div>
+
+  <!-- LIVE -->
+  <div id="liveModal" class="overlay hidden">
+    <div class="live-window">
+      <button class="close-player" onclick="closeLiveWindow()">✕</button>
+
+      <div id="liveSetupPanel">
+        <h1>Go Live</h1>
+
+        <p>
+          Start a small GryphonTube live stream using your camera or screen.
+        </p>
+
+        <label>Stream title</label>
+        <input
+          id="liveTitleInput"
+          type="text"
+          maxlength="80"
+          placeholder="What are you streaming?"
+        >
+
+        <label>Category</label>
+
+        <select id="liveCategoryInput">
+          <option value="Gaming">Gaming</option>
+          <option value="Music">Music</option>
+          <option value="Animation">Animation</option>
+          <option value="Funny" selected>Funny</option>
+        </select>
+
+        <p id="liveSetupStatus" class="auth-status"></p>
+
+        <div class="live-start-buttons">
+          <button
+            class="primary-button"
+            onclick="startLive('camera')"
+          >
+            📷 Camera + Mic
+          </button>
+
+          <button
+            class="secondary-button"
+            onclick="startLive('screen')"
+          >
+            🖥️ Share Screen
+          </button>
+        </div>
+      </div>
+
+      <div id="liveStudio" class="hidden">
+        <div class="live-header-row">
+          <div>
+            <span class="live-pill">LIVE</span>
+            <h1 id="liveStudioTitle">Live Stream</h1>
+          </div>
+
+          <div
+            class="live-viewer-count"
+            id="liveViewerCount"
+          >
+            0 watching
+          </div>
+        </div>
+
+        <div class="live-layout">
+          <div class="live-video-area">
+            <video
+              id="liveLocalVideo"
+              autoplay
+              muted
+              playsinline
+            ></video>
+          </div>
+
+          <div class="live-chat">
+            <h2>Live chat</h2>
+
+            <div
+              id="liveChatList"
+              class="live-chat-list"
+            ></div>
+
+            <div class="live-chat-input">
+              <input
+                id="liveChatInput"
+                type="text"
+                maxlength="250"
+                placeholder="Say something..."
+                onkeydown="if(event.key==='Enter') sendLiveChat()"
+              >
+
+              <button onclick="sendLiveChat()">
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <button
+          class="end-live-button"
+          onclick="endLiveStream()"
+        >
+          End stream
+        </button>
+      </div>
+
+      <div id="liveViewer" class="hidden">
+        <div class="live-header-row">
+          <div>
+            <span class="live-pill">LIVE</span>
+            <h1 id="liveRoomTitle">Live Stream</h1>
+            <p id="liveStreamerName"></p>
+          </div>
+
+          <div
+            class="live-viewer-count"
+            id="liveViewerCountViewer"
+          >
+            Connecting...
+          </div>
+        </div>
+
+        <div class="live-layout">
+          <div class="live-video-area">
+            <video
+              id="liveRemoteVideo"
+              autoplay
+              playsinline
+              controls
+            ></video>
+          </div>
+
+          <div class="live-chat">
+            <h2>Live chat</h2>
+
+            <div
+              id="liveViewerChatList"
+              class="live-chat-list"
+            ></div>
+
+            <div class="live-chat-input">
+              <input
+                id="liveViewerChatInput"
+                type="text"
+                maxlength="250"
+                placeholder="Say something..."
+                onkeydown="if(event.key==='Enter') sendViewerChat()"
+              >
+
+              <button onclick="sendViewerChat()">
+                Send
+              </button>
+            </div>
+          </div>
+        </div>
 
         <button
           class="secondary-button"
-          onclick="signOut()"
+          onclick="leaveLiveStream()"
         >
-          Sign Out
+          Leave stream
         </button>
-
       </div>
-
     </div>
-
   </div>
-
-
-  <!-- ==================== CHANNEL ==================== -->
-
-  <div
-    id="channelModal"
-    class="overlay hidden"
-  >
-
-    <div class="channel-window">
-
-      <button
-        class="close-player"
-        onclick="closeChannel()"
-      >
-        ✕
-      </button>
-
-
-      <div class="channel-header">
-
-        <div
-          class="big-channel-icon"
-          id="channelIcon"
-        >
-          G
-        </div>
-
-
-        <div class="channel-info">
-
-          <h1 id="channelName"></h1>
-
-          <p id="channelStats"></p>
-
-          <p
-            class="channel-bio"
-            id="channelBio"
-          ></p>
-
-        </div>
-
-      </div>
-
-
-      <div
-        id="channelGrid"
-        class="video-grid"
-      ></div>
-
-    </div>
-
-  </div>
-
-
-  <!-- ==================== NOTIFICATIONS ==================== -->
 
   <div
     id="notificationBox"
@@ -691,13 +453,9 @@
     🔔 No new notifications
   </div>
 
-
-  <!-- ==================== SUPABASE ==================== -->
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <script src="script.js?v=999"></script>
+  <script src="script.js?v=1000"></script>
 
 </body>
-
 </html>
+```
