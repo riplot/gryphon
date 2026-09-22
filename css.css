@@ -1791,3 +1791,82 @@ section {
   }
 
 }
+
+/* =========================================================
+   GRYPHONTUBE CHANNEL PAGE FIX
+   ========================================================= */
+
+/* Stop channel text from overlapping */
+.gt-channel-main {
+  align-items: center;
+  min-width: 0;
+}
+
+.gt-channel-main > div:nth-child(2) {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.gt-channel-main h1 {
+  margin: 0 0 8px 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.15;
+}
+
+.gt-channel-main p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Keep channel stats from running into each other */
+.gt-channel-main .gt-stat {
+  display: inline-block;
+  margin-right: 14px;
+  margin-bottom: 5px;
+}
+
+/* Make channel videos normal-sized instead of huge */
+#gtChannelModal .gt-grid {
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(240px, 300px)
+  );
+  justify-content: start;
+  align-items: start;
+}
+
+/* Make each channel video card stay contained */
+#gtChannelModal .gt-card {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Keep thumbnails at a normal YouTube-like size */
+#gtChannelModal .gt-card img,
+#gtChannelModal .gt-card video {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+/* Prevent long video/channel text from overflowing */
+#gtChannelModal .gt-card h3,
+#gtChannelModal .gt-card p {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* On smaller screens, let the channel stack nicely */
+@media (max-width: 700px) {
+  .gt-channel-main {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  #gtChannelModal .gt-grid {
+    grid-template-columns: 1fr;
+  }
+}
