@@ -1883,7 +1883,7 @@ section {
   grid-template-columns: 92px minmax(0, 1fr) auto;
   gap: 18px;
   align-items: center;
-  padding: 22px;
+  padding: 30px;
   margin-top: -36px;
 }
 
