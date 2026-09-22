@@ -2648,89 +2648,42 @@ function getChannelBio(
    ========================================================= */
 
 async function showSubscriptions() {
-
   if (!currentUser) {
-
-    alert(
-      "Sign in to see your subscriptions."
-    );
-
+    alert("Sign in to see your subscriptions.");
     openAccount();
-
     return;
-
   }
 
-
-  const {
-    data,
-    error
-  } =
-    await supabaseClient
-      .from(
-        "channel_subscriptions"
-      )
-      .select(
-        "creator_id"
-      )
-      .eq(
-        "subscriber_id",
-        currentUser.id
-      );
-
+  const { data, error } = await supabaseClient
+    .from("channel_subscriptions")
+    .select("creator_id")
+    .eq("subscriber_id", currentUser.id);
 
   if (error) {
-
-    console.error(
-      error
-    );
-
+    console.error("Subscriptions error:", error);
     return;
-
   }
 
+  const creatorIds = (data || []).map(
+    row => row.creator_id
+  );
 
-  const creatorIds =
-    (data || [])
-      .map(
-        row =>
-          row.creator_id
-      );
+  const subscribedVideos = videos.filter(
+    video => creatorIds.includes(video.creator_id)
+  );
 
-
-  const subscribedVideos =
-    videos.filter(
-      video =>
-        creatorIds.includes(
-          video.creator_id
-        )
-    );
-
-
-  document.getElementById(
-    "videoSectionTitle"
-  ).textContent =
+  document.getElementById("videoSectionTitle").textContent =
     "Subscriptions";
-
 
   renderVideoGrid(
     subscribedVideos,
-    document.getElementById(
-      "videoGrid"
-    )
+    document.getElementById("videoGrid")
   );
-
 
   window.scrollTo({
-
-    top:
-      0,
-
-    behavior:
-      "smooth"
-
-  );
-
+    top: 0,
+    behavior: "smooth"
+  });
 }
 
 
