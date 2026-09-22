@@ -5170,3 +5170,59 @@ window.handleUpload = async function (event) {
     alert("Cloudinary upload failed. Check the console.");
   }
 };
+// TEMPORARY: intercept the real GryphonTube upload form
+document.addEventListener("submit", async function (event) {
+  const form = event.target;
+
+  const fileInput =
+    form.querySelector("#videoUpload") ||
+    form.querySelector('input[type="file"]');
+
+  // Ignore forms that aren't the video uploader
+  if (!fileInput) return;
+
+  // Stop the old handleUpload() completely
+  event.preventDefault();
+  event.stopImmediatePropagation();
+
+  const file = fileInput.files?.[0];
+
+  if (!file) {
+    alert("Choose a video first.");
+    return;
+  }
+
+  console.log("Cloudinary test starting:", file.name);
+
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("upload_preset", "gryphontube");
+
+  try {
+    alert("Uploading to Cloudinary...");
+
+    const response = await fetch(
+      "https://api.cloudinary.com/v1_1/hzzgy02q/video/upload",
+      {
+        method: "POST",
+        body: formData
+      }
+    );
+
+    const data = await response.json();
+
+    console.log("Cloudinary response:", data);
+
+    if (!response.ok) {
+      console.error("Cloudinary upload failed:", data);
+      alert("Cloudinary upload failed. Check the console.");
+      return;
+    }
+
+    console.log("CLOUDINARY SUCCESS:", data.secure_url);
+    alert("CLOUDINARY UPLOAD WORKED!");
+  } catch (error) {
+    console.error("Cloudinary error:", error);
+    alert("Cloudinary upload failed. Check the console.");
+  }
+}, true);
