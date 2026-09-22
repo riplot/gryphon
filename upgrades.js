@@ -3195,3 +3195,43 @@
     gtCloseStudio;
 
 })();
+window.openVideoByPath = function (path) {
+  const rawPath = String(path ?? "");
+
+  let decodedPath = rawPath;
+
+  try {
+    decodedPath = decodeURIComponent(rawPath);
+  } catch (error) {
+    // Keep the original path if it was not encoded.
+  }
+
+  const allVideos =
+    typeof videos !== "undefined" && Array.isArray(videos)
+      ? videos
+      : [];
+
+  const video = allVideos.find(
+    item =>
+      item.storage_path === rawPath ||
+      item.storage_path === decodedPath ||
+      item.id === rawPath ||
+      item.video === rawPath ||
+      item.url === rawPath
+  );
+
+  if (video) {
+    if (typeof openVideo === "function") {
+      openVideo(video);
+    } else {
+      console.error("openVideo() is not available.");
+    }
+
+    return;
+  }
+
+  console.error(
+    "GryphonTube couldn't find video:",
+    rawPath
+  );
+};
