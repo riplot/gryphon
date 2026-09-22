@@ -431,74 +431,194 @@
       GT.profileCache.delete(user.id);
     }
   }
+async function gtOpenChannelByName(name) {
+  const cleanName = String(name || "").trim() || "Creator";
 
-  async function gtOpenChannelByName(name) {
-    const cleanName = String(name || "").trim() || "Creator";
+  const list = gtCurrentVideos().filter(
+    video => video.creator_name === cleanName
+  );
 
-    const list = gtCurrentVideos().filter(
-      video => video.creator_name === cleanName
+  const creatorId =
+    list.find(video => video.creator_id)?.creator_id ||
+    (
+      gtCurrentUser() &&
+      typeof creatorName !== "undefined" &&
+      cleanName === creatorName
+        ? gtCurrentUser().id
+        : null
     );
 
-    const creatorId =
-      list.find(video => video.creator_id)?.creator_id ||
-      (
-        typeof creatorName !== "undefined" &&
-        cleanName === creatorName &&
-        gtCurrentUser()
-      )
-        ? gtCurrentUser().id
-        : null;
+  const profile = await gtGetProfile(
+    creatorId,
+    cleanName
+  );
 
-    const profile = await gtGetProfile(creatorId, cleanName);
+  const subscriberCount =
+    typeof getSubscriberCount === "function" && creatorId
+      ? await getSubscriberCount(creatorId)
+      : 0;
 
-    const subscriberCount =
-      typeof getSubscriberCount === "function" && creatorId
-        ? await getSubscriberCount(creatorId)
-        : 0;
+  const own =
+    !!gtCurrentUser() &&
+    !!creatorId &&
+    creatorId === gtCurrentUser().id;
 
-    const own =
-      !!gtCurrentUser() &&
-      !!creatorId &&
-      creatorId === gtCurrentUser().id;
-
-    setModal("gtChannelModal", `
-      <button class="gt-close" onclick="gtCloseChannel()">✕</button>
+  setModal(
+    "gtChannelModal",
+    `
+      <button
+        class="gt-close"
+        onclick="gtCloseChannel()"
+      >
+        ✕
+      </button>
 
       <div class="gt-channel-hero">
-        <div class="gt-channel-banner"
-          style="background:
-            radial-gradient(circle at 20% 20%, rgba(255,255,255,.24), transparent 35%),
-            linear-gradient(120deg, ${gtEsc(profile?.color || "#673ab7")}, #1976d2);">
-        </div>
 
-        <div class="gt-channel-main">
-          <div class="gt-channel-avatar"
-            style="background:${gtEsc(profile?.color || "#673ab7")}">
-            ${gtEsc((profile?.channel_name || cleanName).slice(0,1).toUpperCase())}
+        <div
+          class="gt-channel-banner"
+          style="
+            background:
+              radial-gradient(
+                circle at 20% 20%,
+                rgba(255,255,255,.24),
+                transparent 35%
+              ),
+              linear-gradient(
+                120deg,
+                ${gtEsc(profile?.color || "#673ab7")},
+                #1976d2
+              );
+          "
+        ></div>
+
+        <div
+          class="gt-channel-main"
+          style="
+            display:grid;
+            grid-template-columns:92px minmax(0,1fr) auto;
+            gap:18px;
+            align-items:center;
+            padding:22px;
+            margin-top:-36px;
+            min-width:0;
+          "
+        >
+
+          <div
+            class="gt-channel-avatar"
+            style="
+              background:${gtEsc(
+                profile?.color || "#673ab7"
+              )};
+              width:92px;
+              height:92px;
+              min-width:92px;
+              min-height:92px;
+              box-sizing:border-box;
+            "
+          >
+            ${gtEsc(
+              (profile?.channel_name || cleanName)
+                .slice(0,1)
+                .toUpperCase()
+            )}
           </div>
 
-          <div style="flex:1">
-            <h1>${gtEsc(profile?.channel_name || cleanName)}</h1>
+          <div
+            style="
+              min-width:0;
+              width:100%;
+              overflow:visible;
+            "
+          >
 
-            <div>
-              <span class="gt-stat">
-                ${list.length} video${list.length === 1 ? "" : "s"}
+            <h1
+              style="
+                margin:0 0 10px 0;
+                line-height:1.2;
+                overflow-wrap:anywhere;
+                word-break:break-word;
+              "
+            >
+              ${gtEsc(
+                profile?.channel_name || cleanName
+              )}
+            </h1>
+
+            <div
+              style="
+                display:flex;
+                flex-wrap:wrap;
+                align-items:center;
+                gap:8px 14px;
+                margin-top:8px;
+              "
+            >
+
+              <span
+                class="gt-stat"
+                style="
+                  display:inline-block;
+                  white-space:nowrap;
+                  margin:0;
+                "
+              >
+                ${list.length}
+                video${list.length === 1 ? "" : "s"}
               </span>
 
-              <span class="gt-stat">
-                ${subscriberCount} subscriber${subscriberCount === 1 ? "" : "s"}
+              <span
+                class="gt-stat"
+                style="
+                  display:inline-block;
+                  white-space:nowrap;
+                  margin:0;
+                "
+              >
+                ${subscriberCount}
+                subscriber${subscriberCount === 1 ? "" : "s"}
               </span>
+
             </div>
 
-            <p class="gt-muted">
+            <p
+              class="gt-muted"
+              style="
+                margin:10px 0 0;
+                line-height:1.5;
+                overflow-wrap:anywhere;
+                word-break:break-word;
+                max-width:100%;
+              "
+            >
               ${gtEsc(profile?.bio || "")}
             </p>
+
           </div>
 
-          <div class="gt-actions">
+          <div
+            class="gt-actions"
+            style="
+              display:flex;
+              flex-wrap:wrap;
+              gap:8px;
+              align-items:center;
+              justify-content:flex-end;
+              min-width:150px;
+            "
+          >
+
             ${
               own
-                ? `<button class="gt-button gt-secondary" onclick="gtOpenStudio()">Creator Studio</button>`
+                ? `
+                  <button
+                    class="gt-button gt-secondary"
+                    onclick="gtOpenStudio()"
+                  >
+                    Creator Studio
+                  </button>
+                `
                 : `
                   <button
                     class="gt-button gt-primary"
@@ -509,66 +629,336 @@
                   </button>
                 `
             }
+
           </div>
+
         </div>
 
-        <div class="gt-tabs">
-          <button class="gt-button gt-tab active" id="gtChannelVideosTab">
+        <div
+          class="gt-tabs"
+          style="
+            display:flex;
+            flex-wrap:wrap;
+            gap:8px;
+            padding:0 22px 18px;
+          "
+        >
+
+          <button
+            class="gt-button gt-tab active"
+            id="gtChannelVideosTab"
+          >
             Videos
           </button>
 
-          <button class="gt-button gt-tab" id="gtChannelAboutTab">
+          <button
+            class="gt-button gt-tab"
+            id="gtChannelAboutTab"
+          >
             About
           </button>
+
         </div>
+
       </div>
 
       <div id="gtChannelBody"></div>
-    `);
+    `
+  );
 
-    const body = q("#gtChannelBody");
+  const body = q("#gtChannelBody");
 
-    if (body) {
-      body.innerHTML = `
-        <div class="gt-grid">
-          ${
-            list.length
-              ? list.map(video => `
-                <div class="gt-card">
-                  <img
-                    src="${gtEsc(video.thumbnail || "gusty.jpeg")}"
-                    alt=""
-                    onerror="this.src='gusty.jpeg'"
-                  >
+  function renderChannelVideos() {
+    if (!body) return;
 
-                  <h3>${gtEsc(video.title || "Untitled")}</h3>
+    body.innerHTML = `
+      <div
+        class="gt-grid"
+        style="
+          display:grid;
+          grid-template-columns:
+            repeat(
+              auto-fill,
+              minmax(230px,280px)
+            );
+          justify-content:start;
+          align-items:start;
+          gap:18px;
+          padding:0 22px 22px;
+        "
+      >
+        ${
+          list.length
+            ? list
+                .map(
+                  video => `
+                    <div
+                      class="gt-card"
+                      style="
+                        width:100%;
+                        max-width:280px;
+                        min-width:0;
+                        box-sizing:border-box;
+                        overflow:hidden;
+                      "
+                    >
 
-                  <p class="gt-muted">
-                    ${
-                      typeof formatViews === "function"
-                        ? gtEsc(formatViews(video.views))
-                        : `${video.views || 0} views`
-                    }
-                  </p>
+                      <img
+                        src="${gtEsc(
+                          video.thumbnail || "gusty.jpeg"
+                        )}"
+                        alt=""
+                        onerror="this.src='gusty.jpeg'"
+                        style="
+                          display:block;
+                          width:100%;
+                          aspect-ratio:16/9;
+                          object-fit:cover;
+                          border-radius:10px;
+                        "
+                      >
 
-                  <button
-                    class="gt-button gt-secondary"
-                    data-gt-play="${gtEsc(video.storage_path)}"
-                  >
-                    Watch
-                  </button>
-                </div>
-              `).join("")
-              : `
-                <div class="gt-card">
-                  <h3>No videos yet</h3>
-                  <p>This channel hasn't uploaded anything.</p>
-                </div>
-              `
+                      <h3
+                        style="
+                          margin:10px 0 6px;
+                          line-height:1.3;
+                          overflow-wrap:anywhere;
+                          word-break:break-word;
+                        "
+                      >
+                        ${gtEsc(
+                          video.title || "Untitled"
+                        )}
+                      </h3>
+
+                      <p
+                        class="gt-muted"
+                        style="
+                          line-height:1.4;
+                          overflow-wrap:anywhere;
+                          word-break:break-word;
+                        "
+                      >
+                        ${
+                          typeof formatViews === "function"
+                            ? gtEsc(
+                                formatViews(
+                                  video.views
+                                )
+                              )
+                            : `${video.views || 0} views`
+                        }
+                      </p>
+
+                      <button
+                        class="gt-button gt-secondary"
+                        data-gt-play="${gtEsc(
+                          video.storage_path
+                        )}"
+                      >
+                        Watch
+                      </button>
+
+                    </div>
+                  `
+                )
+                .join("")
+            : `
+              <div
+                class="gt-card"
+                style="
+                  grid-column:1/-1;
+                "
+              >
+                <h3>No videos yet</h3>
+                <p>
+                  This channel hasn't uploaded anything.
+                </p>
+              </div>
+            `
+        }
+      </div>
+    `;
+
+    body
+      .querySelectorAll("[data-gt-play]")
+      .forEach(button => {
+        button.addEventListener(
+          "click",
+          event => {
+            event.stopPropagation();
+
+            const path =
+              button.getAttribute(
+                "data-gt-play"
+              );
+
+            const video =
+              gtCurrentVideos().find(
+                v =>
+                  v.storage_path === path
+              );
+
+            if (
+              video &&
+              typeof openVideo === "function"
+            ) {
+              gtCloseChannel();
+              openVideo(video);
+            }
           }
-        </div>
-      `;
+        );
+      });
+  }
+
+  function renderChannelAbout() {
+    if (!body) return;
+
+    body.innerHTML = `
+      <div
+        class="gt-card"
+        style="
+          margin:0 22px 22px;
+        "
+      >
+
+        <h2>About</h2>
+
+        <p
+          style="
+            line-height:1.6;
+            overflow-wrap:anywhere;
+            word-break:break-word;
+          "
+        >
+          ${gtEsc(
+            profile?.bio ||
+            "No channel bio yet."
+          )}
+        </p>
+
+        <p class="gt-muted">
+          ${list.length}
+          video${list.length === 1 ? "" : "s"}
+          •
+          ${subscriberCount}
+          subscriber${subscriberCount === 1 ? "" : "s"}
+        </p>
+
+      </div>
+    `;
+  }
+
+  renderChannelVideos();
+
+  const subscribeButton =
+    q("#gtChannelSubscribeButton");
+
+  if (
+    subscribeButton &&
+    creatorId &&
+    typeof toggleSubscription === "function"
+  ) {
+    if (!gtCurrentUser()) {
+
+      subscribeButton.textContent =
+        "🔒 Sign in to Subscribe";
+
+    } else if (own) {
+
+      subscribeButton.textContent =
+        "Your Channel";
+
+      subscribeButton.disabled = true;
+
+    } else {
+
+      const { data } =
+        await gtClient()
+          .from("channel_subscriptions")
+          .select("creator_id")
+          .eq(
+            "subscriber_id",
+            gtCurrentUser().id
+          )
+          .eq(
+            "creator_id",
+            creatorId
+          )
+          .maybeSingle();
+
+      const subscribed =
+        !!data;
+
+      subscribeButton.textContent =
+        subscribed
+          ? "✓ Subscribed"
+          : "Subscribe";
+
+      subscribeButton.classList.toggle(
+        "subscribed",
+        subscribed
+      );
+
+      subscribeButton.onclick =
+        async () => {
+
+          await toggleSubscription(
+            creatorId,
+            cleanName
+          );
+
+          await gtOpenChannelByName(
+            cleanName
+          );
+        };
     }
+  }
+
+  const videosTab =
+    q("#gtChannelVideosTab");
+
+  const aboutTab =
+    q("#gtChannelAboutTab");
+
+  if (
+    videosTab &&
+    aboutTab
+  ) {
+
+    videosTab.onclick =
+      () => {
+
+        videosTab.classList.add(
+          "active"
+        );
+
+        aboutTab.classList.remove(
+          "active"
+        );
+
+        renderChannelVideos();
+      };
+
+    aboutTab.onclick =
+      () => {
+
+        aboutTab.classList.add(
+          "active"
+        );
+
+        videosTab.classList.remove(
+          "active"
+        );
+
+        renderChannelAbout();
+      };
+  }
+
+  gtShowModal(
+    "gtChannelModal"
+  );
+}
 
     const subscribeButton = q("#gtChannelSubscribeButton");
 
