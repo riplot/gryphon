@@ -2017,8 +2017,8 @@ section {
 }
 .gt-channel-banner {
   width: 100%;
-  height: 120px;
-  margin-bottom: 25px !important;
+  height: 100px;
+  margin-bottom: 20px !important;
   position: relative;
   z-index: 1;
 }
