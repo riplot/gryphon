@@ -5122,10 +5122,21 @@ function escapeAttribute(
     );
 
 }
-async function testCloudinaryUpload(event) {
-  const file = event.target.files?.[0];
 
-  if (!file) return;
+// TEMPORARY CLOUDINARY UPLOAD TEST
+window.handleUpload = async function (event) {
+  event.preventDefault();
+
+  const fileInput =
+    document.getElementById("videoUpload") ||
+    event.target.querySelector('input[type="file"]');
+
+  const file = fileInput?.files?.[0];
+
+  if (!file) {
+    alert("Choose a video first.");
+    return;
+  }
 
   const formData = new FormData();
   formData.append("file", file);
@@ -5144,18 +5155,18 @@ async function testCloudinaryUpload(event) {
 
     const data = await response.json();
 
+    console.log("Cloudinary response:", data);
+
     if (!response.ok) {
-      console.error("Cloudinary error:", data);
-      alert("Upload failed. Check the console.");
+      console.error("Cloudinary upload failed:", data);
+      alert("Cloudinary upload failed. Check the console.");
       return;
     }
 
-    console.log("CLOUDINARY UPLOAD SUCCESS:", data);
-    console.log("Video URL:", data.secure_url);
-
-    alert("UPLOAD WORKED! Check the console for the video URL.");
+    console.log("CLOUDINARY SUCCESS:", data.secure_url);
+    alert("CLOUDINARY UPLOAD WORKED!");
   } catch (error) {
-    console.error("Cloudinary upload error:", error);
-    alert("Upload failed. Check the console.");
+    console.error("Cloudinary error:", error);
+    alert("Cloudinary upload failed. Check the console.");
   }
-}
+};
