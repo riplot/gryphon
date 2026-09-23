@@ -1403,109 +1403,87 @@ function renderVideoGrid(
    UPLOAD
    ========================================================= */
 
-async function uploadVideo(
-  event
-) {
-
+async function uploadVideo(event) {
   if (!currentUser) {
-
-    event.target.value =
-      "";
-
-    alert(
-      "You need an account to upload."
-    );
-
+    event.target.value = "";
+    alert("You need an account to upload.");
     openAccount();
-
     return;
-
   }
 
-
-  const file =
-    event.target.files[0];
-
+  const file = event.target.files?.[0];
 
   if (!file) {
     return;
   }
 
-
-  if (
-    !file.type.startsWith(
-      "video/"
-    )
-  ) {
-
-    alert(
-      "Please select a video."
-    );
-
-    event.target.value =
-      "";
-
+  if (!file.type.startsWith("video/")) {
+    alert("Please select a video.");
+    event.target.value = "";
     return;
-
   }
 
+  try {
+    // =========================
+    // UPLOAD VIDEO TO CLOUDINARY
+    // =========================
+    console.log("Uploading to Cloudinary:", file.name);
 
-  const safeName =
-    file.name.replace(
-      /[^a-zA-Z0-9._-]/g,
-      "_"
+    const cloudinaryForm = new FormData();
+    cloudinaryForm.append("file", file);
+    cloudinaryForm.append("upload_preset", "gryphontube");
+
+    const cloudinaryResponse = await fetch(
+      "https://api.cloudinary.com/v1_1/hzzgy02q/video/upload",
+      {
+        method: "POST",
+        body: cloudinaryForm
+      }
     );
 
+    const cloudinaryData = await cloudinaryResponse.json();
 
-  const fileName =
-    Date.now() +
-    "-" +
-    Math.random()
-      .toString(36)
-      .slice(2,8) +
-    "-" +
-    safeName;
+    console.log(
+      "Cloudinary response:",
+      cloudinaryData
+    );
 
-
-  try {
-
-    const {
-      error
-    } =
-      await supabaseClient.storage
-        .from("videos")
-        .upload(
-          fileName,
-          file
-        );
-
-
-    if (error) {
-
+    if (
+      !cloudinaryResponse.ok ||
+      !cloudinaryData.secure_url
+    ) {
       console.error(
-        "UPLOAD ERROR:",
-        error
+        "Cloudinary upload failed:",
+        cloudinaryData
       );
 
       alert(
         "Upload failed: " +
-        error.message
+        (
+          cloudinaryData.error?.message ||
+          "Cloudinary error"
+        )
       );
 
       return;
-
     }
 
+    const videoUrl =
+      cloudinaryData.secure_url;
 
-    const {
-      data: urlData
-    } =
-      supabaseClient.storage
-        .from("videos")
-        .getPublicUrl(
-          fileName
-        );
+    console.log(
+      "CLOUDINARY SUCCESS:",
+      videoUrl
+    );
 
+    // =========================
+    // SAVE VIDEO INFO IN SUPABASE
+    // =========================
+    const title =
+      file.name.replace(
+        /\.[^/.]+$/,
+        ""
+      );
 
     const {
       data,
@@ -1514,15 +1492,11 @@ async function uploadVideo(
       await supabaseClient
         .from("videos")
         .insert({
+          // Cloudinary URL instead of
+          // a Supabase storage filename
+          storage_path: videoUrl,
 
-          storage_path:
-            fileName,
-
-          title:
-            file.name.replace(
-              /\.[^/.]+$/,
-              ""
-            ),
+          title: title,
 
           creator_id:
             currentUser.id,
@@ -1533,38 +1507,36 @@ async function uploadVideo(
           category:
             "Funny",
 
-          views:
-            0
+          views: 0,
 
+          is_deleted: false,
+
+          thumbnail:
+            "gusty.jpeg"
         })
         .select()
         .single();
 
-
     if (metadataError) {
-
       console.warn(
         "Metadata warning:",
         metadataError.message
       );
-
     }
 
-
+    // =========================
+    // ADD VIDEO TO PAGE
+    // =========================
     const newVideo = {
-
       id:
         data?.id ||
         null,
 
       storage_path:
-        fileName,
+        videoUrl,
 
       title:
-        file.name.replace(
-          /\.[^/.]+$/,
-          ""
-        ),
+        title,
 
       creator_id:
         currentUser.id,
@@ -1573,7 +1545,7 @@ async function uploadVideo(
         creatorName,
 
       video:
-        urlData.publicUrl,
+        videoUrl,
 
       thumbnail:
         "gusty.jpeg",
@@ -1585,31 +1557,37 @@ async function uploadVideo(
         "Funny",
 
       created_at:
+        data?.created_at ||
         new Date().toISOString()
-
     };
-
 
     videos.unshift(
       newVideo
     );
 
-
     displayHomepage();
-
 
     alert(
       "Video uploaded!"
     );
 
-
-    openVideo(
-      newVideo
-    );
-
+    try {
+      if (
+        typeof openVideo ===
+        "function"
+      ) {
+        await openVideo(
+          newVideo
+        );
+      }
+    } catch (error) {
+      console.warn(
+        "Video opened, but openVideo reported an error:",
+        error
+      );
+    }
 
   } catch (error) {
-
     console.error(
       "UPLOAD ERROR:",
       error
@@ -1620,12 +1598,9 @@ async function uploadVideo(
       error.message
     );
 
+  } finally {
+    event.target.value = "";
   }
-
-
-  event.target.value =
-    "";
-
 }
 
 
