@@ -1880,7 +1880,7 @@
 
     alert("Video deleted successfully.");
 
-    await renderStudioReports();
+    renderStudioReports();
 
   } catch (error) {
     console.error("Failed to delete reported video:", error);
