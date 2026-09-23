@@ -1825,6 +1825,39 @@
     </div>
   `;
 }
+  async function deleteReportedVideo(videoId) {
+  if (!videoId) {
+    alert("Could not find the video.");
+    return;
+  }
+
+  if (!confirm("Delete this reported video?")) return;
+
+  const db = client();
+  const me = user();
+
+  if (!db || !me) return;
+
+  try {
+    const { error } = await db
+      .from("videos")
+      .delete()
+      .eq("id", videoId)
+      .eq("creator_id", me.id);
+
+    if (error) {
+      throw error;
+    }
+
+    alert("Video deleted successfully.");
+
+    await renderStudioReports();
+
+  } catch (error) {
+    console.error("Failed to delete reported video:", error);
+    alert("Couldn't delete the video: " + error.message);
+  }
+}
   async function renderStudioPlaylists() {
     const body = q("#gtStudioBody");
     if (!body) return;
