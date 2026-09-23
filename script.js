@@ -838,159 +838,140 @@ function updateProfileButton() {
    ========================================================= */
 
 async function loadVideos() {
-
   let storageVideos = [];
-
   let dbVideos = [];
 
-
+  // =========================
+  // LOAD OLD SUPABASE VIDEOS
+  // =========================
   try {
-
     const {
       data,
       error
-    } =
-      await supabaseClient.storage
-        .from("videos")
-        .list();
-
+    } = await supabaseClient.storage
+      .from("videos")
+      .list();
 
     if (error) {
-
       console.error(
         "STORAGE LOAD ERROR:",
         error
       );
-
     } else {
+      storageVideos = (data || [])
+        .filter(file => {
+          const name =
+            file.name.toLowerCase();
 
-      storageVideos =
-        (data || [])
-          .filter(
-            file => {
-
-              const name =
-                file.name.toLowerCase();
-
-
-              return (
-                name.endsWith(".mp4") ||
-                name.endsWith(".webm") ||
-                name.endsWith(".ogg")
-              );
-
-            }
-          )
-          .map(
-            file => {
-
-              const {
-                data: urlData
-              } =
-                supabaseClient.storage
-                  .from("videos")
-                  .getPublicUrl(
-                    file.name
-                  );
-
-
-              return {
-
-                id:
-                  null,
-
-                storage_path:
-                  file.name,
-
-                title:
-                  file.name.replace(
-                    /\.[^/.]+$/,
-                    ""
-                  ),
-
-                creator_id:
-                  null,
-
-                creator_name:
-                  "You",
-
-                video:
-                  urlData.publicUrl,
-
-                thumbnail:
-                  "gusty.jpeg",
-
-                views:
-                  0,
-
-                category:
-                  "Funny",
-
-                created_at:
-                  file.created_at ||
-                  file.updated_at ||
-                  new Date().toISOString()
-
-              };
-
-            }
+          return (
+            name.endsWith(".mp4") ||
+            name.endsWith(".webm") ||
+            name.endsWith(".ogg")
           );
+        })
+        .map(file => {
+          const {
+            data: urlData
+          } = supabaseClient.storage
+            .from("videos")
+            .getPublicUrl(file.name);
 
+          return {
+            id: null,
+
+            storage_path:
+              file.name,
+
+            title:
+              file.name.replace(
+                /\.[^/.]+$/,
+                ""
+              ),
+
+            creator_id:
+              null,
+
+            creator_name:
+              "You",
+
+            video:
+              urlData.publicUrl,
+
+            thumbnail:
+              "gusty.jpeg",
+
+            thumbnail_path:
+              null,
+
+            description:
+              null,
+
+            views:
+              0,
+
+            category:
+              "Funny",
+
+            created_at:
+              file.created_at ||
+              file.updated_at ||
+              new Date().toISOString(),
+
+            is_deleted:
+              false
+          };
+        });
     }
-
   } catch (error) {
-
     console.error(
       "STORAGE ERROR:",
       error
     );
-
   }
 
-
+  // =========================
+  // LOAD VIDEO DATABASE RECORDS
+  // =========================
   try {
-
     const {
       data,
       error
-    } =
-      await supabaseClient
-        .from("videos")
-        .select("*")
-        .order(
-          "created_at",
-          {
-            ascending:
-              false
-          }
-        );
+    } = await supabaseClient
+      .from("videos")
+      .select("*")
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
 
-
-    if (!error) {
-
+    if (error) {
+      console.warn(
+        "DATABASE ERROR:",
+        error
+      );
+    } else {
       dbVideos =
         data || [];
-
     }
-
   } catch (error) {
-
     console.warn(
       "DATABASE ERROR:",
       error
     );
-
   }
 
-
+  // =========================
+  // MERGE OLD SUPABASE VIDEOS
+  // WITH DATABASE INFO
+  // =========================
   const merged = [];
-
 
   for (
     const storageVideo
     of storageVideos
   ) {
-
     const metadata =
       dbVideos.find(
         row =>
@@ -998,11 +979,8 @@ async function loadVideos() {
           storageVideo.storage_path
       );
 
-
     if (metadata) {
-
       merged.push({
-
         ...storageVideo,
 
         id:
@@ -1024,43 +1002,127 @@ async function loadVideos() {
           metadata.category ||
           "Funny",
 
+        description:
+          metadata.description ||
+          null,
+
+        thumbnail:
+          metadata.thumbnail ||
+          storageVideo.thumbnail,
+
+        thumbnail_path:
+          metadata.thumbnail_path ||
+          null,
+
         views:
           Number(
             metadata.views
-          ) ||
-          0,
+          ) || 0,
 
         created_at:
           metadata.created_at ||
-          storageVideo.created_at
+          storageVideo.created_at,
 
+        is_deleted:
+          metadata.is_deleted ||
+          false
       });
-
     } else {
-
       merged.push(
         storageVideo
       );
-
     }
-
   }
 
+  // =========================
+  // ADD CLOUDINARY VIDEOS
+  // =========================
+  for (
+    const row
+    of dbVideos
+  ) {
+    if (row.is_deleted) {
+      continue;
+    }
 
+    const storagePath =
+      row.storage_path;
+
+    if (
+      typeof storagePath !==
+      "string"
+    ) {
+      continue;
+    }
+
+    const isCloudinary =
+      storagePath.startsWith(
+        "https://res.cloudinary.com/"
+      );
+
+    if (!isCloudinary) {
+      continue;
+    }
+
+    const alreadyLoaded =
+      merged.some(
+        video =>
+          video.storage_path ===
+          storagePath
+      );
+
+    if (alreadyLoaded) {
+      continue;
+    }
+
+    merged.push({
+      ...row,
+
+      video:
+        storagePath,
+
+      storage_path:
+        storagePath,
+
+      thumbnail:
+        row.thumbnail ||
+        "gusty.jpeg",
+
+      thumbnail_path:
+        row.thumbnail_path ||
+        null,
+
+      description:
+        row.description ||
+        null,
+
+      views:
+        Number(
+          row.views
+        ) || 0
+    });
+  }
+
+  // =========================
+  // REMOVE DELETED VIDEOS
+  // =========================
   videos =
-    merged.sort(
-      (a,b) =>
-        new Date(
-          b.created_at
-        ) -
-        new Date(
-          a.created_at
-        )
-    );
-
+    merged
+      .filter(
+        video =>
+          !video.is_deleted
+      )
+      .sort(
+        (a, b) =>
+          new Date(
+            b.created_at
+          ) -
+          new Date(
+            a.created_at
+          )
+      );
 
   displayHomepage();
-
 }
 
 
