@@ -853,71 +853,116 @@
     showModal("gtUploadModal");
   }
   async function handleUpload(event) {
-    event.preventDefault();
-    const db = client();
-    const me = user();
-    const status = q("#gtUploadStatus");
-    if (!db || !me || !status) return;
-    const videoFile = q("#gtUploadVideoFile")?.files?.[0];
-    const thumbFile = q("#gtUploadThumbnail")?.files?.[0];
-    const title = q("#gtUploadTitle")?.value.trim();
-    const category = q("#gtUploadCategory")?.value || "Funny";
-    const description = q("#gtUploadDescription")?.value.trim() || null;
-    if (!videoFile) {
-      status.textContent = "Choose a video.";
+  event.preventDefault();
+
+  const db = client();
+  const me = user();
+  const status = q("#gtUploadStatus");
+
+  if (!db || !me || !status) return;
+
+  const videoFile = q("#gtUploadVideoFile")?.files?.[0];
+  const thumbFile = q("#gtUploadThumbnail")?.files?.[0];
+
+  const title = q("#gtUploadTitle")?.value.trim();
+  const category = q("#gtUploadCategory")?.value || "Funny";
+  const description =
+    q("#gtUploadDescription")?.value.trim() || null;
+
+  if (!videoFile) {
+    status.textContent = "Choose a video.";
+    return;
+  }
+
+  if (!videoFile.type.startsWith("video/")) {
+    status.textContent = "That isn't a video file.";
+    return;
+  }
+
+  if (thumbFile) {
+    if (!thumbFile.type.startsWith("image/")) {
+      status.textContent = "The thumbnail must be an image.";
       return;
     }
-    if (!videoFile.type.startsWith("video/")) {
-      status.textContent = "That isn't a video file.";
+
+    if (thumbFile.size > 5 * 1024 * 1024) {
+      status.textContent = "Thumbnail must be 5 MB or smaller.";
       return;
     }
-    if (videoFile.size > 50 * 1024 * 1024) {
-      status.textContent = "That video is over the 50 MB Supabase limit.";
-      return;
-    }
-    if (thumbFile) {
-      if (!thumbFile.type.startsWith("image/")) {
-        status.textContent = "The thumbnail must be an image.";
-        return;
-      }
-      if (thumbFile.size > 5 * 1024 * 1024) {
-        status.textContent = "Thumbnail must be 5 MB or smaller.";
-        return;
-      }
-    }
+  }
+
+  try {
+    // =========================
+    // UPLOAD VIDEO TO CLOUDINARY
+    // =========================
     status.textContent = "Uploading video...";
-    const safeVideo = videoFile.name.replace(
-      /[^a-zA-Z0-9._-]/g,
-      "_"
+
+    const cloudinaryForm = new FormData();
+    cloudinaryForm.append("file", videoFile);
+    cloudinaryForm.append("upload_preset", "gryphontube");
+
+    const cloudinaryResponse = await fetch(
+      "https://api.cloudinary.com/v1_1/hzzgy02q/video/upload",
+      {
+        method: "POST",
+        body: cloudinaryForm
+      }
     );
-    const videoPath =
-      `${me.id}__${Date.now()}__${Math.random()
-        .toString(36)
-        .slice(2, 8)}__${safeVideo}`;
-    const { error: videoError } = await db.storage
-      .from("videos")
-      .upload(videoPath, videoFile);
-    if (videoError) {
-      status.textContent = `Video upload failed: ${videoError.message}`;
+
+    const cloudinaryData = await cloudinaryResponse.json();
+
+    console.log("Cloudinary response:", cloudinaryData);
+
+    if (!cloudinaryResponse.ok || !cloudinaryData.secure_url) {
+      console.error(
+        "Cloudinary upload failed:",
+        cloudinaryData
+      );
+
+      status.textContent =
+        `Video upload failed: ${
+          cloudinaryData.error?.message ||
+          "Cloudinary error"
+        }`;
+
       return;
     }
+
+    const videoUrl = cloudinaryData.secure_url;
+
+    console.log(
+      "CLOUDINARY SUCCESS:",
+      videoUrl
+    );
+
+    // =========================
+    // UPLOAD THUMBNAIL
+    // =========================
     let thumbnailUrl = "gusty.jpeg";
     let thumbnailPath = null;
+
     if (thumbFile) {
       status.textContent = "Uploading thumbnail...";
+
       const safeThumb = thumbFile.name.replace(
         /[^a-zA-Z0-9._-]/g,
         "_"
       );
+
       thumbnailPath =
         `thumb__${me.id}__${Date.now()}__${Math.random()
           .toString(36)
           .slice(2, 8)}__${safeThumb}`;
+
       const { error: thumbError } = await db.storage
         .from("videos")
         .upload(thumbnailPath, thumbFile);
+
       if (thumbError) {
-        console.warn("Thumbnail upload:", thumbError.message);
+        console.warn(
+          "Thumbnail upload:",
+          thumbError.message
+        );
       } else {
         thumbnailUrl = db.storage
           .from("videos")
@@ -925,53 +970,126 @@
           .data.publicUrl;
       }
     }
-    status.textContent = "Saving video information...";
+
+    // =========================
+    // SAVE VIDEO INFO IN SUPABASE
+    // =========================
+    status.textContent =
+      "Saving video information...";
+
     const { data, error } = await db
       .from("videos")
       .insert({
-        storage_path: videoPath,
-        title: title || videoFile.name.replace(/\.[^/.]+$/, ""),
+        // Cloudinary URL goes here now
+        storage_path: videoUrl,
+
+        title:
+          title ||
+          videoFile.name.replace(
+            /\.[^/.]+$/,
+            ""
+          ),
+
         creator_id: me.id,
+
         creator_name:
           typeof creatorName !== "undefined"
             ? creatorName
-            : (me.user_metadata?.creator_name || "You"),
+            : (
+                me.user_metadata?.creator_name ||
+                "You"
+              ),
+
         category,
+
         description,
+
         thumbnail: thumbnailUrl,
+
         thumbnail_path: thumbnailPath,
+
         views: 0,
+
         is_deleted: false
       })
       .select("*")
       .single();
+
     if (error) {
-      status.textContent = `Database save failed: ${error.message}`;
+      console.error(
+        "Database save failed:",
+        error
+      );
+
+      status.textContent =
+        `Database save failed: ${error.message}`;
+
       return;
     }
-    const publicUrl = db.storage
-      .from("videos")
-      .getPublicUrl(videoPath)
-      .data.publicUrl;
+
+    // =========================
+    // ADD TO LOCAL VIDEO LIST
+    // =========================
     const newVideo = {
       ...data,
-      video: publicUrl,
+
+      // Cloudinary URL
+      video: videoUrl,
+
       thumbnail: thumbnailUrl,
-      storage_path: videoPath,
+
+      storage_path: videoUrl,
+
       views: 0,
-      created_at: data?.created_at || new Date().toISOString()
+
+      created_at:
+        data?.created_at ||
+        new Date().toISOString()
     };
+
     if (Array.isArray(videos)) {
-      videos = [newVideo, ...videos];
+      videos = [
+        newVideo,
+        ...videos
+      ];
     }
-    if (typeof displayHomepage === "function") {
+
+    if (
+      typeof displayHomepage ===
+      "function"
+    ) {
       displayHomepage();
     }
+
     closeUpload();
-    if (typeof openVideo === "function") {
-      openVideo(newVideo);
+
+    // Keep the existing behavior,
+    // but don't let the known comments
+    // bug break the upload.
+    if (
+      typeof openVideo ===
+      "function"
+    ) {
+      try {
+        await openVideo(newVideo);
+      } catch (error) {
+        console.warn(
+          "Video opened, but openVideo reported an error:",
+          error
+        );
+      }
     }
+
+  } catch (error) {
+    console.error(
+      "Cloudinary upload error:",
+      error
+    );
+
+    status.textContent =
+      `Upload failed: ${error.message}`;
   }
+}
   function closeUpload() {
     hideModal("gtUploadModal");
   }
