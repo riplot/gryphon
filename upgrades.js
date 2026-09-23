@@ -1770,43 +1770,61 @@
     });
   }
   async function renderStudioReports() {
-    const body = q("#gtStudioBody");
-    const me = user();
-    const db = client();
-    if (!body || !me || !db) return;
-    body.innerHTML = "Loading reports...";
-    const { data, error } = await db
-      .from("video_reports")
-      .select(`
-        *,
-        videos!inner(title, creator_id)
-      `)
-      .eq("videos.creator_id", me.id)
-      .order("created_at", { ascending: false });
-    if (error) {
-      body.innerHTML = `
-        <div class="gt-card">
-          ${esc(error.message)}
-        </div>
-      `;
-      return;
-    }
-    body.innerHTML = (data || []).map(report => `
+  const body = q("#gtStudioBody");
+  const me = user();
+  const db = client();
+
+  if (!body || !me || !db) return;
+
+  body.innerHTML = "Loading reports...";
+
+  const { data, error } = await db
+    .from("video_reports")
+    .select(`
+      *,
+      videos!inner(id, title, creator_id)
+    `)
+    .eq("videos.creator_id", me.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    body.innerHTML = `
       <div class="gt-card">
-        <h3>${esc(report.videos?.title || "Video")}</h3>
-        <p><strong>${esc(report.reason)}</strong></p>
-        <p>${esc(report.details || "No additional details.")}</p>
-        <small class="gt-muted">
-          ${new Date(report.created_at).toLocaleString()}
-        </small>
-      </div>
-    `).join("") || `
-      <div class="gt-card">
-        <h3>No reports.</h3>
-        <p>Your videos don't have any reports right now.</p>
+        ${esc(error.message)}
       </div>
     `;
+    return;
   }
+
+  body.innerHTML = (data || []).map(report => `
+    <div class="gt-card">
+      <h3>${esc(report.videos?.title || "Video")}</h3>
+
+      <p><strong>${esc(report.reason)}</strong></p>
+
+      <p>${esc(report.details || "No additional details.")}</p>
+
+      <small class="gt-muted">
+        ${new Date(report.created_at).toLocaleString()}
+      </small>
+
+      <div class="gt-actions" style="margin-top:12px;">
+        <button
+          class="gt-button gt-primary"
+          type="button"
+          onclick="deleteReportedVideo('${report.videos?.id || report.video_id}')"
+        >
+          Delete Video
+        </button>
+      </div>
+    </div>
+  `).join("") || `
+    <div class="gt-card">
+      <h3>No reports.</h3>
+      <p>Your videos don't have any reports right now.</p>
+    </div>
+  `;
+}
   async function renderStudioPlaylists() {
     const body = q("#gtStudioBody");
     if (!body) return;
