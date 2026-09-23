@@ -1825,11 +1825,40 @@
     </div>
   `;
 }
-  async function deleteReportedVideo(videoId) {
+ async function deleteReportedVideo(videoId) {
   if (!videoId) {
     alert("Could not find the video.");
     return;
   }
+
+  if (!confirm("Delete this video?")) return;
+
+  const db = client();
+  const me = user();
+
+  if (!db || !me) return;
+
+  try {
+    // Delete the video record from Supabase.
+    // We do NOT try to delete the Cloudinary URL from Supabase Storage.
+    const { error } = await db
+      .from("videos")
+      .delete()
+      .eq("id", videoId)
+      .eq("creator_id", me.id);
+
+    if (error) throw error;
+
+    alert("Video deleted.");
+
+    // Refresh the reports list
+    renderStudioReports();
+
+  } catch (error) {
+    console.error("Delete failed:", error);
+    alert("Couldn't delete the video: " + error.message);
+  }
+}
 
   if (!confirm("Delete this reported video?")) return;
 
