@@ -2041,3 +2041,1012 @@
     console.error("GryphonTube couldn't find video:", rawPath);
   };
 })();
+/* =========================================================
+   GRYPHONTUBE CLOUDINARY STORAGE PATCH
+   ========================================================= */
+
+(() => {
+  "use strict";
+
+  const CLOUDINARY_CLOUD =
+    "hzzgy02q";
+
+  const CLOUDINARY_PRESET =
+    "gryphontube";
+
+  const CLOUDINARY_VIDEO_URL =
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/video/upload`;
+
+  function getUser() {
+    return typeof currentUser !== "undefined"
+      ? currentUser
+      : null;
+  }
+
+  function getClient() {
+    return typeof supabaseClient !== "undefined"
+      ? supabaseClient
+      : null;
+  }
+
+  function getVideos() {
+    return typeof videos !== "undefined" &&
+      Array.isArray(videos)
+      ? videos
+      : [];
+  }
+
+  function setVideos(value) {
+    if (typeof videos !== "undefined") {
+      videos = value;
+    }
+  }
+
+  /* =========================================================
+     CLOUDINARY UPLOAD
+     ========================================================= */
+
+  async function cloudinaryUpload(file) {
+    const formData = new FormData();
+
+    formData.append(
+      "file",
+      file
+    );
+
+    formData.append(
+      "upload_preset",
+      CLOUDINARY_PRESET
+    );
+
+    const response =
+      await fetch(
+        CLOUDINARY_VIDEO_URL,
+        {
+          method: "POST",
+          body: formData
+        }
+      );
+
+    const data =
+      await response.json();
+
+    console.log(
+      "Cloudinary response:",
+      data
+    );
+
+    if (
+      !response.ok ||
+      !data.secure_url
+    ) {
+      throw new Error(
+        data.error?.message ||
+        "Cloudinary upload failed."
+      );
+    }
+
+    console.log(
+      "CLOUDINARY SUCCESS:",
+      data.secure_url
+    );
+
+    return data;
+  }
+
+  /* =========================================================
+     CREATOR STUDIO UPLOADER
+     ========================================================= */
+
+  async function cloudinaryHandleUpload(event) {
+    event.preventDefault();
+
+    const db =
+      getClient();
+
+    const me =
+      getUser();
+
+    const status =
+      document.getElementById(
+        "gtUploadStatus"
+      );
+
+    if (
+      !db ||
+      !me ||
+      !status
+    ) {
+      return;
+    }
+
+    const videoFile =
+      document.getElementById(
+        "gtUploadVideoFile"
+      )?.files?.[0];
+
+    const thumbFile =
+      document.getElementById(
+        "gtUploadThumbnail"
+      )?.files?.[0];
+
+    const title =
+      document.getElementById(
+        "gtUploadTitle"
+      )?.value.trim();
+
+    const category =
+      document.getElementById(
+        "gtUploadCategory"
+      )?.value ||
+      "Funny";
+
+    const description =
+      document.getElementById(
+        "gtUploadDescription"
+      )?.value.trim() ||
+      null;
+
+    if (!videoFile) {
+      status.textContent =
+        "Choose a video.";
+      return;
+    }
+
+    if (
+      !videoFile.type.startsWith(
+        "video/"
+      )
+    ) {
+      status.textContent =
+        "That isn't a video file.";
+      return;
+    }
+
+    if (thumbFile) {
+      if (
+        !thumbFile.type.startsWith(
+          "image/"
+        )
+      ) {
+        status.textContent =
+          "The thumbnail must be an image.";
+        return;
+      }
+
+      if (
+        thumbFile.size >
+        5 * 1024 * 1024
+      ) {
+        status.textContent =
+          "Thumbnail must be 5 MB or smaller.";
+        return;
+      }
+    }
+
+    try {
+      /* VIDEO → CLOUDINARY */
+
+      status.textContent =
+        "Uploading video...";
+
+      const cloudinaryData =
+        await cloudinaryUpload(
+          videoFile
+        );
+
+      const videoUrl =
+        cloudinaryData.secure_url;
+
+      /* THUMBNAIL → SUPABASE */
+
+      let thumbnailUrl =
+        "gusty.jpeg";
+
+      let thumbnailPath =
+        null;
+
+      if (thumbFile) {
+        status.textContent =
+          "Uploading thumbnail...";
+
+        const safeThumb =
+          thumbFile.name.replace(
+            /[^a-zA-Z0-9._-]/g,
+            "_"
+          );
+
+        thumbnailPath =
+          `thumb__${me.id}__${Date.now()}__${Math.random()
+            .toString(36)
+            .slice(2, 8)}__${safeThumb}`;
+
+        const {
+          error: thumbError
+        } =
+          await db.storage
+            .from("videos")
+            .upload(
+              thumbnailPath,
+              thumbFile
+            );
+
+        if (thumbError) {
+          console.warn(
+            "Thumbnail upload:",
+            thumbError.message
+          );
+        } else {
+          thumbnailUrl =
+            db.storage
+              .from("videos")
+              .getPublicUrl(
+                thumbnailPath
+              )
+              .data.publicUrl;
+        }
+      }
+
+      /* DATABASE RECORD */
+
+      status.textContent =
+        "Saving video information...";
+
+      const {
+        data,
+        error
+      } =
+        await db
+          .from("videos")
+          .insert({
+            storage_path:
+              videoUrl,
+
+            title:
+              title ||
+              videoFile.name.replace(
+                /\.[^/.]+$/,
+                ""
+              ),
+
+            creator_id:
+              me.id,
+
+            creator_name:
+              typeof creatorName !==
+              "undefined"
+                ? creatorName
+                : (
+                    me.user_metadata
+                      ?.creator_name ||
+                    "You"
+                  ),
+
+            category,
+
+            description,
+
+            thumbnail:
+              thumbnailUrl,
+
+            thumbnail_path:
+              thumbnailPath,
+
+            views:
+              0,
+
+            is_deleted:
+              false
+          })
+          .select("*")
+          .single();
+
+      if (error) {
+        status.textContent =
+          `Database save failed: ${error.message}`;
+
+        return;
+      }
+
+      /* LOCAL VIDEO */
+
+      const newVideo = {
+        ...data,
+
+        video:
+          videoUrl,
+
+        storage_path:
+          videoUrl,
+
+        thumbnail:
+          thumbnailUrl,
+
+        views:
+          0,
+
+        created_at:
+          data?.created_at ||
+          new Date().toISOString()
+      };
+
+      const current =
+        getVideos();
+
+      setVideos([
+        newVideo,
+        ...current
+      ]);
+
+      if (
+        typeof displayHomepage ===
+        "function"
+      ) {
+        displayHomepage();
+      }
+
+      if (
+        typeof gtCloseUpload ===
+        "function"
+      ) {
+        gtCloseUpload();
+      } else {
+        document
+          .getElementById(
+            "gtUploadModal"
+          )
+          ?.classList.add(
+            "hidden"
+          );
+      }
+
+      if (
+        typeof loadComments !==
+        "function"
+      ) {
+        window.loadComments =
+          async function () {
+            const list =
+              document.getElementById(
+                "commentList"
+              );
+
+            if (list) {
+              list.innerHTML =
+                "";
+            }
+          };
+      }
+
+      if (
+        typeof openVideo ===
+        "function"
+      ) {
+        try {
+          await openVideo(
+            newVideo
+          );
+        } catch (error) {
+          console.warn(
+            "Video opened, but openVideo reported an error:",
+            error
+          );
+        }
+      }
+
+    } catch (error) {
+      console.error(
+        "Cloudinary upload error:",
+        error
+      );
+
+      status.textContent =
+        `Upload failed: ${error.message}`;
+    }
+  }
+
+  /* =========================================================
+     TOP UPLOAD BUTTON
+     ========================================================= */
+
+  function installCreatorUploader() {
+    const button =
+      document.querySelector(
+        ".top-buttons button[title='Upload video']"
+      ) ||
+      document.querySelector(
+        ".top-buttons button[title='Upload']"
+      );
+
+    if (button) {
+      button.onclick =
+        openCloudinaryUploader;
+    }
+  }
+
+  async function openCloudinaryUploader() {
+    if (
+      typeof gtOpenUploader ===
+      "function"
+    ) {
+      gtOpenUploader();
+    }
+
+    setTimeout(
+      () => {
+        const form =
+          document.getElementById(
+            "gtUploadForm"
+          );
+
+        if (form) {
+          form.onsubmit =
+            cloudinaryHandleUpload;
+
+          console.log(
+            "GryphonTube uploader connected to Cloudinary."
+          );
+        }
+      },
+      0
+    );
+  }
+
+  /* =========================================================
+     OLD SIMPLE UPLOADER
+     ========================================================= */
+
+  window.uploadVideo =
+    async function (event) {
+      const user =
+        getUser();
+
+      if (!user) {
+        event.target.value =
+          "";
+
+        alert(
+          "You need an account to upload."
+        );
+
+        if (
+          typeof openAccount ===
+          "function"
+        ) {
+          openAccount();
+        }
+
+        return;
+      }
+
+      const file =
+        event.target.files?.[0];
+
+      if (!file) {
+        return;
+      }
+
+      if (
+        !file.type.startsWith(
+          "video/"
+        )
+      ) {
+        alert(
+          "Please select a video."
+        );
+
+        event.target.value =
+          "";
+
+        return;
+      }
+
+      try {
+        console.log(
+          "Uploading video to Cloudinary:",
+          file.name
+        );
+
+        const cloudinaryData =
+          await cloudinaryUpload(
+            file
+          );
+
+        const videoUrl =
+          cloudinaryData.secure_url;
+
+        const title =
+          file.name.replace(
+            /\.[^/.]+$/,
+            ""
+          );
+
+        const db =
+          getClient();
+
+        let data =
+          null;
+
+        if (db) {
+          const result =
+            await db
+              .from("videos")
+              .insert({
+                storage_path:
+                  videoUrl,
+
+                title,
+
+                creator_id:
+                  user.id,
+
+                creator_name:
+                  typeof creatorName !==
+                  "undefined"
+                    ? creatorName
+                    : "You",
+
+                category:
+                  "Funny",
+
+                views:
+                  0,
+
+                is_deleted:
+                  false,
+
+                thumbnail:
+                  "gusty.jpeg"
+              })
+              .select("*")
+              .single();
+
+          data =
+            result.data;
+
+          if (result.error) {
+            console.warn(
+              "Metadata warning:",
+              result.error.message
+            );
+          }
+        }
+
+        const newVideo = {
+          ...(data || {}),
+
+          id:
+            data?.id ||
+            null,
+
+          storage_path:
+            videoUrl,
+
+          title,
+
+          creator_id:
+            user.id,
+
+          creator_name:
+            typeof creatorName !==
+            "undefined"
+              ? creatorName
+              : "You",
+
+          video:
+            videoUrl,
+
+          thumbnail:
+            "gusty.jpeg",
+
+          views:
+            0,
+
+          category:
+            "Funny",
+
+          created_at:
+            data?.created_at ||
+            new Date().toISOString()
+        };
+
+        const current =
+          getVideos();
+
+        setVideos([
+          newVideo,
+          ...current
+        ]);
+
+        if (
+          typeof displayHomepage ===
+          "function"
+        ) {
+          displayHomepage();
+        }
+
+        alert(
+          "Video uploaded!"
+        );
+
+        if (
+          typeof loadComments !==
+          "function"
+        ) {
+          window.loadComments =
+            async function () {
+              const list =
+                document.getElementById(
+                  "commentList"
+                );
+
+              if (list) {
+                list.innerHTML =
+                  "";
+              }
+            };
+        }
+
+        if (
+          typeof openVideo ===
+          "function"
+        ) {
+          try {
+            await openVideo(
+              newVideo
+            );
+          } catch (error) {
+            console.warn(
+              "Video opened, but openVideo reported an error:",
+              error
+            );
+          }
+        }
+
+      } catch (error) {
+        console.error(
+          "UPLOAD ERROR:",
+          error
+        );
+
+        alert(
+          "Upload failed: " +
+          error.message
+        );
+
+      } finally {
+        event.target.value =
+          "";
+      }
+    };
+
+  /* =========================================================
+     LOAD VIDEOS
+     ========================================================= */
+
+  window.loadVideos =
+    async function () {
+      const db =
+        getClient();
+
+      if (!db) {
+        return;
+      }
+
+      let storageVideos =
+        [];
+
+      let dbVideos =
+        [];
+
+      /* OLD SUPABASE STORAGE VIDEOS */
+
+      try {
+        const {
+          data,
+          error
+        } =
+          await db.storage
+            .from("videos")
+            .list();
+
+        if (!error) {
+          storageVideos =
+            (data || [])
+              .filter(file => {
+                const name =
+                  file.name.toLowerCase();
+
+                return (
+                  name.endsWith(".mp4") ||
+                  name.endsWith(".webm") ||
+                  name.endsWith(".ogg")
+                );
+              })
+              .map(file => {
+                const {
+                  data: urlData
+                } =
+                  db.storage
+                    .from("videos")
+                    .getPublicUrl(
+                      file.name
+                    );
+
+                return {
+                  id:
+                    null,
+
+                  storage_path:
+                    file.name,
+
+                  title:
+                    file.name.replace(
+                      /\.[^/.]+$/,
+                      ""
+                    ),
+
+                  creator_id:
+                    null,
+
+                  creator_name:
+                    "You",
+
+                  video:
+                    urlData.publicUrl,
+
+                  thumbnail:
+                    "gusty.jpeg",
+
+                  thumbnail_path:
+                    null,
+
+                  description:
+                    null,
+
+                  views:
+                    0,
+
+                  category:
+                    "Funny",
+
+                  created_at:
+                    file.created_at ||
+                    file.updated_at ||
+                    new Date().toISOString(),
+
+                  is_deleted:
+                    false
+                };
+              });
+        }
+      } catch (error) {
+        console.warn(
+          "Supabase storage load:",
+          error
+        );
+      }
+
+      /* DATABASE */
+
+      try {
+        const {
+          data,
+          error
+        } =
+          await db
+            .from("videos")
+            .select("*")
+            .order(
+              "created_at",
+              {
+                ascending:
+                  false
+              }
+            );
+
+        if (!error) {
+          dbVideos =
+            data || [];
+        }
+      } catch (error) {
+        console.warn(
+          "Database video load:",
+          error
+        );
+      }
+
+      const merged =
+        [];
+
+      /* OLD SUPABASE VIDEOS */
+
+      for (
+        const storageVideo
+        of storageVideos
+      ) {
+        const metadata =
+          dbVideos.find(
+            row =>
+              row.storage_path ===
+              storageVideo.storage_path
+          );
+
+        if (metadata) {
+          merged.push({
+            ...storageVideo,
+            ...metadata,
+
+            video:
+              storageVideo.video,
+
+            storage_path:
+              metadata.storage_path,
+
+            thumbnail:
+              metadata.thumbnail ||
+              storageVideo.thumbnail
+          });
+        } else {
+          merged.push(
+            storageVideo
+          );
+        }
+      }
+
+      /* CLOUDINARY VIDEOS */
+
+      for (
+        const row
+        of dbVideos
+      ) {
+        if (
+          row.is_deleted
+        ) {
+          continue;
+        }
+
+        if (
+          typeof row.storage_path !==
+          "string"
+        ) {
+          continue;
+        }
+
+        const isCloudinary =
+          row.storage_path.startsWith(
+            "https://res.cloudinary.com/"
+          );
+
+        if (!isCloudinary) {
+          continue;
+        }
+
+        const alreadyLoaded =
+          merged.some(
+            item =>
+              item.storage_path ===
+              row.storage_path
+          );
+
+        if (
+          alreadyLoaded
+        ) {
+          continue;
+        }
+
+        merged.push({
+          ...row,
+
+          video:
+            row.storage_path,
+
+          storage_path:
+            row.storage_path,
+
+          thumbnail:
+            row.thumbnail ||
+            "gusty.jpeg",
+
+          views:
+            Number(
+              row.views
+            ) || 0
+        });
+      }
+
+      setVideos(
+        merged
+          .filter(
+            video =>
+              !video.is_deleted
+          )
+          .sort(
+            (a, b) =>
+              new Date(
+                b.created_at
+              ) -
+              new Date(
+                a.created_at
+              )
+          )
+      );
+
+      if (
+        typeof displayHomepage ===
+        "function"
+      ) {
+        displayHomepage();
+      }
+    };
+
+  /* =========================================================
+     FIX MISSING COMMENTS FUNCTION
+     ========================================================= */
+
+  if (
+    typeof window.loadComments !==
+    "function"
+  ) {
+    window.loadComments =
+      async function () {
+        const list =
+          document.getElementById(
+            "commentList"
+          );
+
+        if (list) {
+          list.innerHTML =
+            "";
+        }
+      };
+  }
+
+  /* =========================================================
+     INSTALL AFTER UPGRADES.JS HAS CREATED THE UPLOADER
+     ========================================================= */
+
+  function installEverything() {
+    installCreatorUploader();
+
+    const form =
+      document.getElementById(
+        "gtUploadForm"
+      );
+
+    if (form) {
+      form.onsubmit =
+        cloudinaryHandleUpload;
+    }
+  }
+
+  window.addEventListener(
+    "load",
+    () => {
+      setTimeout(
+        installEverything,
+        300
+      );
+    }
+  );
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+      setTimeout(
+        installEverything,
+        1500
+      );
+    }
+  );
+
+  setInterval(
+    installEverything,
+    2500
+  );
+
+  console.log(
+    "GryphonTube Cloudinary patch loaded."
+  );
+
+})();
