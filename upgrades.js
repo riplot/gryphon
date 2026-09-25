@@ -1650,8 +1650,10 @@ async function removeMissingCloudinaryVideos(db, dbVideos) {
 
 const existingVideos = [];
 
-for (const video of existingVideos || []) {
+for (const video of remoteVideos || []) {
   const url = video.storage_path;
+
+  // Check Cloudinary videos
   if (
     typeof url === "string" &&
     url.startsWith("https://res.cloudinary.com/")
@@ -1662,6 +1664,7 @@ for (const video of existingVideos || []) {
         cache: "no-store"
       });
 
+      // Cloudinary says the file is gone
       if (response.status === 404) {
         const { error: deleteError } = await db
           .from("videos")
@@ -1689,6 +1692,44 @@ for (const video of existingVideos || []) {
       );
     }
   }
+
+  // Keep the video if it exists,
+  // or if the check could not be completed.
+  existingVideos.push(video);
+}
+
+const owned = Array.isArray(existingVideos)
+  ? existingVideos
+  : [];
+
+if (Array.isArray(videos)) {
+  const localByPath = new Map(
+    videos.map(video => [video.storage_path, video])
+  );
+
+  videos = [
+    ...owned.map(video => ({
+      ...(localByPath.get(video.storage_path) || {}),
+      ...video
+    })),
+    ...videos.filter(video =>
+      !owned.some(
+        item => item.storage_path === video.storage_path
+      ) &&
+      video.creator_id !== me.id
+    )
+  ];
+}
+
+if (!owned.length) {
+  body.innerHTML = `
+    <div class="gt-card">
+      <h2>No managed videos yet</h2>
+      <p>Upload a video from Creator Studio.</p>
+    </div>
+  `;
+  return;
+}
     const owned = Array.isArray(existingVideos) ? existingVideos : [];
     if (Array.isArray(videos)) {
       const localByPath = new Map(
