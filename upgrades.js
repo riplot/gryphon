@@ -3139,16 +3139,64 @@ async function removeMissingCloudinaryVideos(db, dbVideos) {
             );
 
         if (!error) {
-          dbVideos =
-            data || [];
-        } 
-        dbVideos = await removeMissingCloudinaryVideos(db, dbVideos);
-      } catch (error) {
+  dbVideos = data || [];
+
+  const checkedVideos = [];
+
+  for (const video of dbVideos) {
+    const url = video.storage_path;
+
+    if (
+      typeof url === "string" &&
+      url.startsWith("https://res.cloudinary.com/")
+    ) {
+      try {
+        const response = await fetch(url, {
+          method: "HEAD",
+          cache: "no-store"
+        });
+
+        if (response.status === 404) {
+          const { error: deleteError } = await db
+            .from("videos")
+            .delete()
+            .eq("id", video.id);
+
+          if (deleteError) {
+            console.warn(
+              "Could not remove missing Cloudinary video:",
+              deleteError.message
+            );
+            checkedVideos.push(video);
+          } else {
+            console.log(
+              "Removed missing Cloudinary video:",
+              video.title
+            );
+          }
+
+          continue;
+        }
+      } catch (checkError) {
         console.warn(
-          "Database video load:",
-          error
+          "Cloudinary existence check failed:",
+          checkError
         );
       }
+    }
+
+    checkedVideos.push(video);
+  }
+
+  dbVideos = checkedVideos;
+}
+
+} catch (error) {
+  console.warn(
+    "Database video load:",
+    error
+  );
+}
 
       const merged =
         [];
