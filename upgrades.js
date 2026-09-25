@@ -1650,10 +1650,8 @@ async function removeMissingCloudinaryVideos(db, dbVideos) {
 
 const existingVideos = [];
 
-for (const video of remoteVideos || []) {
+for (const video of existingVideos || []) {
   const url = video.storage_path;
-
-  // Only check Cloudinary videos
   if (
     typeof url === "string" &&
     url.startsWith("https://res.cloudinary.com/")
@@ -1664,7 +1662,6 @@ for (const video of remoteVideos || []) {
         cache: "no-store"
       });
 
-      // Cloudinary says the file is gone
       if (response.status === 404) {
         const { error: deleteError } = await db
           .from("videos")
@@ -1685,24 +1682,13 @@ for (const video of remoteVideos || []) {
 
         continue;
       }
-
-      // File exists, so keep it
-      existingVideos.push(video);
-
     } catch (checkError) {
-      // Don't delete if the check itself failed
       console.warn(
-        "Could not check Cloudinary video:",
+        "Cloudinary check failed:",
         checkError
       );
-
-      existingVideos.push(video);
     }
-  } else {
-    // Old/non-Cloudinary video
-    existingVideos.push(video);
   }
-}
     const owned = Array.isArray(remoteVideos) ? remoteVideos : [];
     if (Array.isArray(videos)) {
       const localByPath = new Map(
