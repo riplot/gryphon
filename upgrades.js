@@ -1689,7 +1689,7 @@ for (const video of existingVideos || []) {
       );
     }
   }
-    const owned = Array.isArray(remoteVideos) ? remoteVideos : [];
+    const owned = Array.isArray(existingVideos) ? existingVideos : [];
     if (Array.isArray(videos)) {
       const localByPath = new Map(
         videos.map(video => [video.storage_path, video])
