@@ -3141,7 +3141,8 @@ async function removeMissingCloudinaryVideos(db, dbVideos) {
         if (!error) {
           dbVideos =
             data || [];
-        }
+        } 
+        dbVideos = await removeMissingCloudinaryVideos(db, dbVideos);
       } catch (error) {
         console.warn(
           "Database video load:",
