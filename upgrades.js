@@ -1631,7 +1631,7 @@ async function removeMissingCloudinaryVideos(db, dbVideos) {
     const db = client();
     if (!body || !me || !db) return;
     body.innerHTML = "Loading your videos...";
-    const { data: remoteVideos, error } = await db
+    const { data: existingVideos, error } = await db
       .from("videos")
       .select("*")
       .eq("creator_id", me.id)
