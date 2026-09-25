@@ -1646,6 +1646,63 @@ async function removeMissingCloudinaryVideos(db, dbVideos) {
       `;
       return;
     }
+    /* CHECK CLOUDINARY FILES */
+
+const existingVideos = [];
+
+for (const video of remoteVideos || []) {
+  const url = video.storage_path;
+
+  // Only check Cloudinary videos
+  if (
+    typeof url === "string" &&
+    url.startsWith("https://res.cloudinary.com/")
+  ) {
+    try {
+      const response = await fetch(url, {
+        method: "HEAD",
+        cache: "no-store"
+      });
+
+      // Cloudinary says the file is gone
+      if (response.status === 404) {
+        const { error: deleteError } = await db
+          .from("videos")
+          .delete()
+          .eq("id", video.id);
+
+        if (deleteError) {
+          console.warn(
+            "Could not delete missing video:",
+            deleteError.message
+          );
+        } else {
+          console.log(
+            "Deleted missing Cloudinary video:",
+            video.title
+          );
+        }
+
+        continue;
+      }
+
+      // File exists, so keep it
+      existingVideos.push(video);
+
+    } catch (checkError) {
+      // Don't delete if the check itself failed
+      console.warn(
+        "Could not check Cloudinary video:",
+        checkError
+      );
+
+      existingVideos.push(video);
+    }
+  } else {
+    // Old/non-Cloudinary video
+    existingVideos.push(video);
+  }
+}
     const owned = Array.isArray(remoteVideos) ? remoteVideos : [];
     if (Array.isArray(videos)) {
       const localByPath = new Map(
