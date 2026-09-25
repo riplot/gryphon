@@ -1626,319 +1626,388 @@ async function removeMissingCloudinaryVideos(db, dbVideos) {
   return dbVideos.filter(video => !missingIds.has(video.id));
 }
   async function renderStudioVideos() {
-    const body = q("#gtStudioBody");
-    const me = user();
-    const db = client();
-    if (!body || !me || !db) return;
-    body.innerHTML = "Loading your videos...";
-    const { data: existingVideos, error } = await db
-      .from("videos")
-      .select("*")
-      .eq("creator_id", me.id)
-      .eq("is_deleted", false)
-      .order("created_at", { ascending: false });
-    if (error) {
-      body.innerHTML = `
-        <div class="gt-card">
-          <h3>Could not load your videos</h3>
-          <p>${esc(error.message)}</p>
-        </div>
-      `;
-      return;
-    }
-    /* CHECK CLOUDINARY FILES */
+  const body = q("#gtStudioBody");
+  const me = user();
+  const db = client();
 
-const existingVideos = [];
+  if (!body || !me || !db) return;
 
-for (const video of remoteVideos || []) {
-  const url = video.storage_path;
+  body.innerHTML = "Loading your videos...";
 
-  // Check Cloudinary videos
-  if (
-    typeof url === "string" &&
-    url.startsWith("https://res.cloudinary.com/")
-  ) {
-    try {
-      const response = await fetch(url, {
-        method: "HEAD",
-        cache: "no-store"
-      });
+  const { data: remoteVideos, error } = await db
+    .from("videos")
+    .select("*")
+    .eq("creator_id", me.id)
+    .eq("is_deleted", false)
+    .order("created_at", { ascending: false });
 
-      // Cloudinary says the file is gone
-      if (response.status === 404) {
-        const { error: deleteError } = await db
-          .from("videos")
-          .delete()
-          .eq("id", video.id);
+  if (error) {
+    body.innerHTML = `
+      <div class="gt-card">
+        <h3>Could not load your videos</h3>
+        <p>${esc(error.message)}</p>
+      </div>
+    `;
+    return;
+  }
 
-        if (deleteError) {
-          console.warn(
-            "Could not delete missing video:",
-            deleteError.message
-          );
-        } else {
-          console.log(
-            "Deleted missing Cloudinary video:",
-            video.title
-          );
+  /*
+   * Check Cloudinary videos.
+   * 404 = file is gone, so remove the database record.
+   * Other errors = keep the video.
+   */
+  const owned = [];
+
+  for (const video of remoteVideos || []) {
+    const url = video.storage_path;
+
+    if (
+      typeof url === "string" &&
+      url.startsWith("https://res.cloudinary.com/")
+    ) {
+      try {
+        const response = await fetch(url, {
+          method: "HEAD",
+          cache: "no-store"
+        });
+
+        if (response.status === 404) {
+          const { error: deleteError } = await db
+            .from("videos")
+            .delete()
+            .eq("id", video.id);
+
+          if (deleteError) {
+            console.warn(
+              "Could not delete missing Cloudinary video:",
+              deleteError.message
+            );
+
+            owned.push(video);
+          } else {
+            console.log(
+              "Deleted missing Cloudinary video:",
+              video.title
+            );
+          }
+
+          continue;
         }
-
-        continue;
+      } catch (checkError) {
+        console.warn(
+          "Cloudinary check failed:",
+          checkError
+        );
       }
-    } catch (checkError) {
-      console.warn(
-        "Cloudinary check failed:",
-        checkError
-      );
     }
+
+    owned.push(video);
   }
 
-  // Keep the video if it exists,
-  // or if the check could not be completed.
-  existingVideos.push(video);
-}
+  if (Array.isArray(videos)) {
+    const localByPath = new Map(
+      videos.map(video => [video.storage_path, video])
+    );
 
-const owned = Array.isArray(existingVideos)
-  ? existingVideos
-  : [];
+    videos = [
+      ...owned.map(video => ({
+        ...(localByPath.get(video.storage_path) || {}),
+        ...video
+      })),
+      ...videos.filter(video =>
+        !owned.some(
+          item => item.storage_path === video.storage_path
+        ) &&
+        video.creator_id !== me.id
+      )
+    ];
+  }
 
-if (Array.isArray(videos)) {
-  const localByPath = new Map(
-    videos.map(video => [video.storage_path, video])
-  );
+  if (!owned.length) {
+    body.innerHTML = `
+      <div class="gt-card">
+        <h2>No managed videos yet</h2>
+        <p>Upload a video from Creator Studio.</p>
+      </div>
+    `;
+    return;
+  }
 
-  videos = [
-    ...owned.map(video => ({
-      ...(localByPath.get(video.storage_path) || {}),
-      ...video
-    })),
-    ...videos.filter(video =>
-      !owned.some(
-        item => item.storage_path === video.storage_path
-      ) &&
-      video.creator_id !== me.id
-    )
-  ];
-}
+  body.innerHTML = "";
 
-if (!owned.length) {
-  body.innerHTML = `
-    <div class="gt-card">
-      <h2>No managed videos yet</h2>
-      <p>Upload a video from Creator Studio.</p>
-    </div>
-  `;
-  return;
-}
-    const owned = Array.isArray(existingVideos) ? existingVideos : [];
-    if (Array.isArray(videos)) {
-      const localByPath = new Map(
-        videos.map(video => [video.storage_path, video])
-      );
-      videos = [
-        ...owned.map(video => ({
-          ...(localByPath.get(video.storage_path) || {}),
-          ...video
-        })),
-        ...videos.filter(video =>
-          !owned.some(item => item.storage_path === video.storage_path) &&
-          video.creator_id !== me.id
-        )
-      ];
-    }
-    if (!owned.length) {
-      body.innerHTML = `
-        <div class="gt-card">
-          <h2>No managed videos yet</h2>
-          <p>Upload a video from Creator Studio.</p>
-        </div>
-      `;
-      return;
-    }
-    body.innerHTML = "";
-    owned.forEach(video => {
-      const item = document.createElement("div");
-      item.className = "gt-card gt-studio-item";
-      item.innerHTML = `
-        <div>
-          <img
-            src="${esc(video.thumbnail || "gusty.jpeg") }"
-            onerror="this.src='gusty.jpeg'"
-            alt=""
+  owned.forEach(video => {
+    const item = document.createElement("div");
+
+    item.className = "gt-card gt-studio-item";
+
+    item.innerHTML = `
+      <div>
+        <img
+          src="${esc(video.thumbnail || "gusty.jpeg")}"
+          onerror="this.src='gusty.jpeg'"
+          alt=""
+        >
+      </div>
+
+      <div class="gt-form">
+        <label>Title</label>
+
+        <input
+          data-gt-title
+          maxlength="120"
+          value="${esc(video.title || "")}"
+        >
+
+        <label>Category</label>
+
+        <select data-gt-category>
+          ${["Gaming", "Music", "Animation", "Funny"]
+            .map(category => `
+              <option value="${esc(category)}" ${
+                video.category === category ? "selected" : ""
+              }>
+                ${esc(category)}
+              </option>
+            `)
+            .join("")}
+        </select>
+
+        <label>Description</label>
+
+        <textarea
+          data-gt-description
+          maxlength="2000"
+        >${esc(video.description || "")}</textarea>
+
+        <label>Replace thumbnail</label>
+
+        <input
+          data-gt-thumb
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+        >
+
+        <div class="gt-actions">
+          <button
+            class="gt-button gt-primary"
+            data-gt-save
           >
-        </div>
-        <div class="gt-form">
-          <label>Title</label>
-          <input
-            data-gt-title
-            maxlength="120"
-            value="${esc(video.title || "") }"
+            Save changes
+          </button>
+
+          <button
+            class="gt-button gt-secondary"
+            data-gt-watch
           >
-          <label>Category</label>
-          <select data-gt-category>
-            ${["Gaming", "Music", "Animation", "Funny"]
-              .map(category => `
-                <option value="${esc(category)}" ${
-                  video.category === category ? "selected" : ""
-                }>
-                  ${esc(category)}
-                </option>
-              `)
-              .join("")}
-          </select>
-          <label>Description</label>
-          <textarea
-            data-gt-description
-            maxlength="2000"
-          >${esc(video.description || "")}</textarea>
-          <label>Replace thumbnail</label>
-          <input
-            data-gt-thumb
-            type="file"
-            accept="image/png,image/jpeg,image/webp"
+            Watch
+          </button>
+
+          <button
+            class="gt-button gt-danger"
+            data-gt-delete
           >
-          <div class="gt-actions">
-            <button
-              class="gt-button gt-primary"
-              data-gt-save
-            >
-              Save changes
-            </button>
-            <button
-              class="gt-button gt-secondary"
-              data-gt-watch
-            >
-              Watch
-            </button>
-            <button
-              class="gt-button gt-danger"
-              data-gt-delete
-            >
-              Delete
-            </button>
-          </div>
-          <p class="gt-muted" data-gt-status></p>
+            Delete
+          </button>
         </div>
-      `;
-      const status = q("[data-gt-status]", item);
-      q("[data-gt-watch]", item).onclick = () => {
-        closeStudio();
-        if (typeof openVideo === "function") openVideo(video);
+
+        <p class="gt-muted" data-gt-status></p>
+      </div>
+    `;
+
+    const status = q("[data-gt-status]", item);
+
+    q("[data-gt-watch]", item).onclick = () => {
+      closeStudio();
+
+      if (typeof openVideo === "function") {
+        openVideo(video);
+      }
+    };
+
+    q("[data-gt-save]", item).onclick = async () => {
+      status.textContent = "Saving...";
+
+      const title = q(
+        "[data-gt-title]",
+        item
+      ).value.trim();
+
+      const category = q(
+        "[data-gt-category]",
+        item
+      ).value;
+
+      const description =
+        q(
+          "[data-gt-description]",
+          item
+        ).value.trim() || null;
+
+      const thumbFile =
+        q(
+          "[data-gt-thumb]",
+          item
+        ).files?.[0];
+
+      if (!title) {
+        status.textContent = "Title is required.";
+        return;
+      }
+
+      const updates = {
+        title,
+        category,
+        description,
+        updated_at: new Date().toISOString()
       };
-      q("[data-gt-save]", item).onclick = async () => {
-        status.textContent = "Saving...";
-        const title = q("[data-gt-title]", item).value.trim();
-        const category = q("[data-gt-category]", item).value;
-        const description =
-          q("[data-gt-description]", item).value.trim() || null;
-        const thumbFile = q("[data-gt-thumb]", item).files?.[0];
-        if (!title) {
-          status.textContent = "Title is required.";
+
+      if (thumbFile) {
+        if (!thumbFile.type.startsWith("image/")) {
+          status.textContent = "Thumbnail must be an image.";
           return;
         }
-        const updates = {
-          title,
-          category,
-          description,
+
+        if (thumbFile.size > 5 * 1024 * 1024) {
+          status.textContent = "Thumbnail must be 5 MB or smaller.";
+          return;
+        }
+
+        const safeThumb = thumbFile.name.replace(
+          /[^a-zA-Z0-9._-]/g,
+          "_"
+        );
+
+        const path =
+          `thumb__${me.id}__${Date.now()}__${Math.random()
+            .toString(36)
+            .slice(2, 8)}__${safeThumb}`;
+
+        const { error: uploadError } = await db.storage
+          .from("videos")
+          .upload(path, thumbFile);
+
+        if (uploadError) {
+          status.textContent = uploadError.message;
+          return;
+        }
+
+        updates.thumbnail_path = path;
+
+        updates.thumbnail = db.storage
+          .from("videos")
+          .getPublicUrl(path)
+          .data.publicUrl;
+      }
+
+      const { data, error: updateError } = await db
+        .from("videos")
+        .update(updates)
+        .eq("id", video.id)
+        .eq("creator_id", me.id)
+        .select("*")
+        .single();
+
+      if (updateError) {
+        status.textContent = updateError.message;
+        return;
+      }
+
+      if (
+        thumbFile &&
+        video.thumbnail_path &&
+        video.thumbnail_path !== data.thumbnail_path
+      ) {
+        db.storage
+          .from("videos")
+          .remove([video.thumbnail_path])
+          .catch(() => {});
+      }
+
+      Object.assign(video, data);
+
+      status.textContent = "Saved.";
+
+      if (typeof displayHomepage === "function") {
+        displayHomepage();
+      }
+
+      await renderStudioVideos();
+    };
+
+    q("[data-gt-delete]", item).onclick = async () => {
+      if (!confirm(`Delete "${video.title}"?`)) return;
+
+      status.textContent = "Deleting...";
+
+      const { error: deleteError } = await db
+        .from("videos")
+        .update({
+          is_deleted: true,
+          deleted_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        };
-        if (thumbFile) {
-          if (!thumbFile.type.startsWith("image/")) {
-            status.textContent = "Thumbnail must be an image.";
-            return;
-          }
-          if (thumbFile.size > 5 * 1024 * 1024) {
-            status.textContent = "Thumbnail must be 5 MB or smaller.";
-            return;
-          }
-          const safeThumb = thumbFile.name.replace(
-            /[^a-zA-Z0-9._-]/g,
-            "_"
+        })
+        .eq("id", video.id)
+        .eq("creator_id", me.id);
+
+      if (deleteError) {
+        status.textContent = deleteError.message;
+        return;
+      }
+
+      /*
+       * Only remove the video file from Supabase Storage
+       * when it is NOT a Cloudinary video.
+       */
+      const paths = [];
+
+      if (
+        video.storage_path &&
+        !(
+          typeof video.storage_path === "string" &&
+          video.storage_path.startsWith(
+            "https://res.cloudinary.com/"
+          )
+        )
+      ) {
+        paths.push(video.storage_path);
+      }
+
+      /*
+       * Thumbnails are still stored in Supabase Storage.
+       */
+      if (video.thumbnail_path) {
+        paths.push(video.thumbnail_path);
+      }
+
+      if (paths.length) {
+        const { error: storageError } = await db.storage
+          .from("videos")
+          .remove(paths);
+
+        if (storageError) {
+          console.warn(
+            "Storage delete:",
+            storageError.message
           );
-          const path =
-            `thumb__${me.id}__${Date.now()}__${Math.random()
-              .toString(36)
-              .slice(2, 8)}__${safeThumb}`;
-          const { error: uploadError } = await db.storage
-            .from("videos")
-            .upload(path, thumbFile);
-          if (uploadError) {
-            status.textContent = uploadError.message;
-            return;
-          }
-          updates.thumbnail_path = path;
-          updates.thumbnail = db.storage
-            .from("videos")
-            .getPublicUrl(path)
-            .data.publicUrl;
         }
-        const { data, error: updateError } = await db
-          .from("videos")
-          .update(updates)
-          .eq("id", video.id)
-          .eq("creator_id", me.id)
-          .select("*")
-          .single();
-        if (updateError) {
-          status.textContent = updateError.message;
-          return;
-        }
-        if (
-          thumbFile &&
-                     video.thumbnail_path &&
-          video.thumbnail_path !== data.thumbnail_path
-        ) {
-          db.storage
-            .from("videos")
-            .remove([video.thumbnail_path])
-            .catch(() => {});
-        }
-        Object.assign(video, data);
-        status.textContent = "Saved.";
-        if (typeof displayHomepage === "function") {
-          displayHomepage();
-        }
-        await renderStudioVideos();
-      };
-      q("[data-gt-delete]", item).onclick = async () => {
-        if (!confirm(`Delete "${video.title}"?`)) return;
-        status.textContent = "Deleting...";
-        const { error: deleteError } = await db
-          .from("videos")
-          .update({
-            is_deleted: true,
-            deleted_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq("id", video.id)
-          .eq("creator_id", me.id);
-        if (deleteError) {
-          status.textContent = deleteError.message;
-          return;
-        }
-        const paths = [
-          video.storage_path,
-          video.thumbnail_path
-        ].filter(Boolean);
-        if (paths.length) {
-          const { error: storageError } = await db.storage
-            .from("videos")
-            .remove(paths);
-          if (storageError) {
-            console.warn("Storage delete:", storageError.message);
-          }
-        }
-        if (Array.isArray(videos)) {
-          videos = videos.filter(item => item.id !== video.id);
-        }
-        if (typeof displayHomepage === "function") {
-          displayHomepage();
-        }
-        await renderStudioVideos();
-      };
-      body.appendChild(item);
-    });
-  }
+      }
+
+      if (Array.isArray(videos)) {
+        videos = videos.filter(
+          item => item.id !== video.id
+        );
+      }
+
+      if (typeof displayHomepage === "function") {
+        displayHomepage();
+      }
+
+      await renderStudioVideos();
+    };
+
+    body.appendChild(item);
+  });
+}
   async function renderStudioReports() {
   const body = q("#gtStudioBody");
   const me = user();
