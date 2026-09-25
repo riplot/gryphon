@@ -1539,6 +1539,92 @@
   function closeStudio() {
     hideModal("gtStudioModal");
   }
+  function isCloudinaryVideoUrl(url) {
+  return (
+    typeof url === "string" &&
+    url.startsWith("https://res.cloudinary.com/")
+  );
+}
+
+async function cloudinaryVideoExists(url) {
+  if (!isCloudinaryVideoUrl(url)) return null;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 7000);
+
+  try {
+    const response = await fetch(url, {
+      method: "HEAD",
+      cache: "no-store",
+      signal: controller.signal
+    });
+
+    if (response.status === 200 || response.ok) {
+      return true;
+    }
+
+    if (response.status === 404) {
+      return false;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn("Cloudinary existence check failed:", error);
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function removeMissingCloudinaryVideos(db, dbVideos) {
+  const cloudinaryVideos = dbVideos.filter(video =>
+    video &&
+    video.id &&
+    isCloudinaryVideoUrl(video.storage_path) &&
+    !video.is_deleted
+  );
+
+  if (!cloudinaryVideos.length) {
+    return dbVideos;
+  }
+
+  const results = await Promise.all(
+    cloudinaryVideos.map(async video => ({
+      video,
+      exists: await cloudinaryVideoExists(video.storage_path)
+    }))
+  );
+
+  const missing = results.filter(result => result.exists === false);
+
+  for (const result of missing) {
+    const { video } = result;
+
+    const { error } = await db
+      .from("videos")
+      .delete()
+      .eq("id", video.id);
+
+    if (error) {
+      console.warn(
+        "Could not remove missing Cloudinary video:",
+        error.message
+      );
+    } else {
+      console.log(
+        "Removed missing Cloudinary video:",
+        video.title,
+        video.storage_path
+      );
+    }
+  }
+
+  const missingIds = new Set(
+    missing.map(result => result.video.id)
+  );
+
+  return dbVideos.filter(video => !missingIds.has(video.id));
+}
   async function renderStudioVideos() {
     const body = q("#gtStudioBody");
     const me = user();
