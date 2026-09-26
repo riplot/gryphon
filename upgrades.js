@@ -426,7 +426,7 @@
         accept="image/png,image/jpeg,image/webp"
       >
       <small class="gt-muted">
-        PNG, JPG, or WebP. Max 5 MB.
+        PNG, JPG, or WebP. Max 100 MB.
       </small>
     `;
     account.insertBefore(wrap, account.firstChild);
