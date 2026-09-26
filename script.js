@@ -1990,7 +1990,214 @@ async function incrementViews() {
 
 }
 
+/* =========================================================
+   COMMENTS
+   ========================================================= */
 
+function getVisitorId() {
+  let visitorId =
+    localStorage.getItem("gryphontube_visitor_id");
+
+  if (!visitorId) {
+    visitorId =
+      crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2)}`;
+
+    localStorage.setItem(
+      "gryphontube_visitor_id",
+      visitorId
+    );
+  }
+
+  return visitorId;
+}
+
+
+async function loadComments() {
+  const commentList =
+    document.getElementById("commentList");
+
+  if (!commentList) {
+    return;
+  }
+
+  if (
+    !currentVideo ||
+    !currentVideo.id
+  ) {
+    commentList.innerHTML = "";
+    return;
+  }
+
+  commentList.innerHTML =
+    "<p>Loading comments...</p>";
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("video_comments")
+      .select("*")
+      .eq(
+        "video_id",
+        currentVideo.id
+      )
+      .order(
+        "id",
+        {
+          ascending: true
+        }
+      );
+
+  if (error) {
+    console.error(
+      "Comments load error:",
+      error
+    );
+
+    commentList.innerHTML = `
+      <p>Couldn't load comments.</p>
+    `;
+
+    return;
+  }
+
+  currentComments =
+    data || [];
+
+  if (!currentComments.length) {
+    commentList.innerHTML = `
+      <p>No comments yet. Be the first!</p>
+    `;
+
+    return;
+  }
+
+  commentList.innerHTML = "";
+
+  currentComments.forEach(
+    comment => {
+      const item =
+        document.createElement("div");
+
+      item.className =
+        "comment";
+
+      const author =
+        comment.visitor_id ===
+        getVisitorId()
+          ? "You"
+          : "Visitor";
+
+      item.innerHTML = `
+        <strong>
+          ${escapeHtml(author)}
+        </strong>
+
+        <p>
+          ${escapeHtml(comment.body)}
+        </p>
+      `;
+
+      commentList.appendChild(
+        item
+      );
+    }
+  );
+}
+
+
+async function addComment() {
+  const input =
+    document.getElementById(
+      "commentInput"
+    );
+
+  if (!input) {
+    return;
+  }
+
+  const body =
+    input.value.trim();
+
+  if (!body) {
+    return;
+  }
+
+  if (
+    !currentVideo ||
+    !currentVideo.id
+  ) {
+    alert(
+      "Open a video before commenting."
+    );
+
+    return;
+  }
+
+  const visitorId =
+    getVisitorId();
+
+  const creatorId =
+    currentVideo.creator_id ||
+    null;
+
+  const {
+    data,
+    error
+  } =
+    await supabaseClient
+      .from("video_comments")
+      .insert({
+        video_id:
+          currentVideo.id,
+
+        visitor_id:
+          visitorId,
+
+        creator_id:
+          creatorId,
+
+        body:
+          body
+      })
+      .select("*")
+      .single();
+
+  if (error) {
+    console.error(
+      "Comment insert error:",
+      error
+    );
+
+    alert(
+      "Couldn't post comment: " +
+      error.message
+    );
+
+    return;
+  }
+
+  currentComments.push(
+    data
+  );
+
+  input.value = "";
+
+  await loadComments();
+}
+
+
+// Make the inline HTML onclick work.
+window.addComment =
+  addComment;
+
+window.loadComments =
+  loadComments;
 /* =========================================================
    LIKES
    ========================================================= */
