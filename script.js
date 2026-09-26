@@ -5173,55 +5173,97 @@ const GT_CLOUDINARY_PRESET =
 
 
 async function gtCloudinaryUpload(file) {
+  const CHUNK_SIZE = 20 * 1024 * 1024; // 20 MB chunks
+  const uploadId =
+    crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
-  const formData =
-    new FormData();
+  let start = 0;
+  let finalData = null;
 
-  formData.append(
-    "file",
-    file
-  );
+  while (start < file.size) {
+    const end = Math.min(
+      start + CHUNK_SIZE,
+      file.size
+    ) - 1;
 
-  formData.append(
-    "upload_preset",
-    GT_CLOUDINARY_PRESET
-  );
+    const chunk = file.slice(
+      start,
+      end + 1
+    );
 
-  const response =
-    await fetch(
+    const formData = new FormData();
+
+    formData.append(
+      "file",
+      chunk
+    );
+
+    formData.append(
+      "upload_preset",
+      GT_CLOUDINARY_PRESET
+    );
+
+    console.log(
+      `Cloudinary upload: ${(
+        (end + 1) /
+        file.size *
+        100
+      ).toFixed(1)}%`
+    );
+
+    const response = await fetch(
       GT_CLOUDINARY_URL,
       {
-        method:
-          "POST",
-        body:
-          formData
+        method: "POST",
+        headers: {
+          "X-Unique-Upload-Id":
+            uploadId,
+
+          "Content-Range":
+            `bytes ${start}-${end}/${file.size}`
+        },
+        body: formData
       }
     );
 
-  const data =
-    await response.json();
+    let data = {};
+
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        data.error?.message ||
+        `Cloudinary upload failed with HTTP ${response.status}.`
+      );
+    }
+
+    finalData = data;
+
+    start = end + 1;
+  }
 
   console.log(
-    "Cloudinary response:",
-    data
+    "Cloudinary upload complete:",
+    finalData
   );
 
   if (
-    !response.ok ||
-    !data.secure_url
+    !finalData ||
+    !finalData.secure_url
   ) {
-
     throw new Error(
-      data.error?.message ||
-      "Cloudinary upload failed."
+      "Cloudinary upload completed without a secure URL."
     );
-
   }
 
-  return data;
-
+  return finalData;
 }
-
 
 /* =========================================================
    REAL CREATOR-STUDIO UPLOAD
